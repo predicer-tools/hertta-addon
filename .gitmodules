@@ -1,0 +1,4 @@
+[submodule "hertta"]
+	path = hertta
+	url = https://github.com/predicer-tools/hertta.git
+	branch = hertta-arrow
