@@ -38,12 +38,23 @@ const generateJsonContent = (electricHeaters, interiorAirSensors, activeDevices)
     }
   };
 
+  // Call setup data
   const setupData = Input_SetupData();
+
+  // Filter out active heaters and sensors based on user activity
   const activeHeaters = electricHeaters.filter(heater => activeDevices[heater.id]);
   const activeSensors = interiorAirSensors.filter(sensor => activeDevices[sensor.sensorId]);
+
+  // Generate processes for heaters
   const processesData = activeHeaters.length > 0 ? { processes: generateProcessesData(activeHeaters) } : {};
+
+  // Generate nodes data for the sensors
   const nodesData = { nodes: generateNodesData(activeSensors) };
+
+  // Generate node diffusions and time-series data
   const nodeDiffusionsData = generateNodeDiffusions(activeSensors, timestamps);
+
+  // Generate other relevant datasets
   const marketData = generateMarketData();
   const groupsData = generateGroupsData(activeHeaters);
   const scenariosData = generateScenariosData();
@@ -51,15 +62,17 @@ const generateJsonContent = (electricHeaters, interiorAirSensors, activeDevices)
   const genConstraintsData = generateGenConstraintsData(activeSensors);
   const bidSlotsData = generateBidSlotsData();
 
+  // Prepare empty datasets for placeholders (reserve type, node delay, node histories, inflow blocks)
   const reserveType = { reserve_type: {} };
   const nodeDelay = { node_delay: [] }; // Correctly specifying it as an empty list
   const nodeHistories = { node_histories: {} };
   const inflowBlocks = { inflow_blocks: {} };
 
+  // Combine everything into one final JSON object
   return {
     ...temporalsData,
     ...setupData,
-    ...processesData,
+    ...processesData, // Include the processes (heaters) data
     ...nodesData,
     ...nodeDiffusionsData,
     ...marketData,

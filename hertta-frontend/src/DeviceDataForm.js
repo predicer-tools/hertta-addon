@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import './DeviceDataForm.css';
+import './DataForm.css';
 import ElectricHeaterForm from './ElectricHeaterForm';
-import InputRoom from './InputRoom';
+import AddRoomForm from './AddRoomForm';
+import AddSensorForm from './AddSensorForm';
 
 function DeviceDataForm({ electricHeaters, setElectricHeaters, interiorAirSensors, setInteriorAirSensors }) {
   const [localElectricHeaters, setLocalElectricHeaters] = useState(electricHeaters);
   const [localInteriorAirSensors, setLocalInteriorAirSensors] = useState(interiorAirSensors);
+  const [rooms, setRooms] = useState([]);
 
   useEffect(() => {
     setLocalElectricHeaters(electricHeaters);
@@ -27,17 +29,31 @@ function DeviceDataForm({ electricHeaters, setElectricHeaters, interiorAirSensor
     setInteriorAirSensors(updatedSensors);
   };
 
-  const rooms = localInteriorAirSensors.map(sensor => ({ roomId: sensor.roomId }));
+  const addRoom = (room) => {
+    const updatedRooms = [...rooms, room];
+    setRooms(updatedRooms);
+  };
 
   return (
     <div>
-      <h3>Add Interior Air Sensor and Room</h3>
-      <InputRoom addInteriorAirSensor={addInteriorAirSensor} />
-      <h3>Added Interior Air Sensors</h3>
+      <h3>Add Room</h3>
+      <AddRoomForm addRoom={addRoom} />
+      <h3>Added Rooms</h3>
+      <ul>
+        {rooms.map((room, index) => (
+          <li key={index}>
+            Room ID: {room.roomId}, Width: {room.roomWidth}m, Length: {room.roomLength}m, Max Temp: {(room.maxTemp - 273.15).toFixed(2)}°C, Min Temp: {(room.minTemp - 273.15).toFixed(2)}°C
+          </li>
+        ))}
+      </ul>
+
+      <h3>Add Sensor</h3>
+      <AddSensorForm addInteriorAirSensor={addInteriorAirSensor} rooms={rooms} />
+      <h3>Added Sensors</h3>
       <ul>
         {localInteriorAirSensors.map((sensor, index) => (
           <li key={index}>
-            Sensor ID: {sensor.sensorId}, Room ID: {sensor.roomId}, Room Width: {sensor.roomWidth}m, Room Length: {sensor.roomLength}m, Max Temp: {(sensor.maxTemp - 273.15).toFixed(2)}°C, Min Temp: {(sensor.minTemp - 273.15).toFixed(2)}°C
+            Sensor ID: {sensor.sensorId}, Room ID: {sensor.roomId}
           </li>
         ))}
       </ul>

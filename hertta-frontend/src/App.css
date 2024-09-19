@@ -38,3 +38,42 @@ If you're not using it, it should be removed or updated accordingly. */
   justify-content: center;
   color: white;
 }
+
+/* New styles for the graph container */
+.graph-container {
+  padding: 20px;
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  margin-top: 20px;
+}
+
+.graph-container h1 {
+  margin-bottom: 20px;
+  font-size: 24px;
+  color: #333;
+}
+
+.graph-container svg {
+  display: block;
+  margin: 0 auto;
+  border: 1px solid #ccc; /* Adds a border around the SVG */
+}
+
+.graph-container .node circle {
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+
+.graph-container .node text {
+  font: 12px sans-serif;
+  pointer-events: none;
+}
+
+.graph-container .link {
+  stroke: #999;
+  stroke-opacity: 0.6;
+}
+
+.graph-container .node:hover {
+  cursor: pointer;
+}
