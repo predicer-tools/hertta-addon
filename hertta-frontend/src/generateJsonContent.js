@@ -1,3 +1,5 @@
+// src/generateJsonContent.js
+
 import Input_SetupData from './Input_SetupData';
 import generateProcessesData from './Input_Processes';
 import generateNodesData from './Input_Nodes';
@@ -45,10 +47,10 @@ const generateJsonContent = (electricHeaters, interiorAirSensors, activeDevices)
   const activeHeaters = electricHeaters.filter(heater => activeDevices[heater.id]);
   const activeSensors = interiorAirSensors.filter(sensor => activeDevices[sensor.sensorId]);
 
-  // Generate processes for heaters
+  // Generate processes for heaters (includes topologies)
   const processesData = activeHeaters.length > 0 ? { processes: generateProcessesData(activeHeaters) } : {};
 
-  // Generate nodes data for the sensors
+  // Generate nodes data for the sensors and additional nodes
   const nodesData = { nodes: generateNodesData(activeSensors) };
 
   // Generate node diffusions and time-series data
@@ -72,7 +74,7 @@ const generateJsonContent = (electricHeaters, interiorAirSensors, activeDevices)
   return {
     ...temporalsData,
     ...setupData,
-    ...processesData, // Include the processes (heaters) data
+    ...processesData, // Include the processes (heaters) data with topologies
     ...nodesData,
     ...nodeDiffusionsData,
     ...marketData,

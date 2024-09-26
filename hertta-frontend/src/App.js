@@ -12,6 +12,8 @@ import HomeEnergyFlowVisualization from './HomeEnergyFlowVisualization';
 import JsonViewer from './JsonViewer';
 import { fetchSensorsFromHomeAssistant } from './services/HomeAssistantInterface';
 import generateJsonContent from './generateJsonContent';
+import VisualizationGraph from './VisualizationGraph';
+
 
 function App() {
   const [jsonContent, setJsonContent] = useState({});
@@ -162,6 +164,16 @@ function App() {
           <Route
             path="/json-viewer"
             element={<JsonViewer jsonContent={jsonContent} />}
+          />
+          <Route
+            path="/visualization-graph"
+            element={
+              <VisualizationGraph
+                rooms={rooms}
+                electricHeaters={electricHeaters}
+                processes={jsonContent.processes || {}} // Pass processes data
+              />
+            }
           />
         </Routes>
       </Layout>
