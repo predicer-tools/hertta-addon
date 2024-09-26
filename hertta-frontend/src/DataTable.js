@@ -1,7 +1,7 @@
 import React from 'react';
 import './DataTable.css';
 
-function DataTable({ electricHeaters, interiorAirSensors, homeAssistantSensors, deleteHeater, deleteSensor }) {
+function DataTable({ electricHeaters, rooms, homeAssistantSensors, deleteHeater, deleteRoom }) {
   console.log('Rendering DataTable with Home Assistant Sensors:', homeAssistantSensors);  // Debug print
 
   return (
@@ -37,37 +37,39 @@ function DataTable({ electricHeaters, interiorAirSensors, homeAssistantSensors, 
         </tbody>
       </table>
 
-      <h3>Interior Air Sensors</h3>
+      <h3>Rooms</h3>
       <table>
         <thead>
           <tr>
-            <th>Sensor ID</th>
             <th>Room ID</th>
             <th>Room Width (m)</th>
             <th>Room Length (m)</th>
             <th>Max Temp (°C)</th>
             <th>Min Temp (°C)</th>
+            <th>Sensor ID</th>
+            <th>Sensor State</th> {/* New column for sensor state */}
             <th>Action</th>
           </tr>
         </thead>
         <tbody>
-          {interiorAirSensors.length > 0 ? (
-            interiorAirSensors.map((sensor, index) => (
+          {rooms.length > 0 ? (
+            rooms.map((room, index) => (
               <tr key={index}>
-                <td>{sensor.sensorId}</td>
-                <td>{sensor.roomId}</td>
-                <td>{sensor.roomWidth}</td>
-                <td>{sensor.roomLength}</td>
-                <td>{(sensor.maxTemp - 273.15).toFixed(2)}</td>
-                <td>{(sensor.minTemp - 273.15).toFixed(2)}</td>
+                <td>{room.roomId}</td> {/* Room ID */}
+                <td>{room.roomWidth}</td>
+                <td>{room.roomLength}</td>
+                <td>{(room.maxTemp - 273.15).toFixed(2)}</td>
+                <td>{(room.minTemp - 273.15).toFixed(2)}</td>
+                <td>{room.sensorId}</td> {/* Sensor ID */}
+                <td>{room.sensorState} {room.sensorUnit}</td> {/* Sensor state and unit */}
                 <td>
-                  <button onClick={() => deleteSensor(sensor.sensorId)}>Delete</button>
+                  <button onClick={() => deleteRoom(room.sensorId)}>Delete</button>
                 </td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan="7">No interior air sensors available</td>
+              <td colSpan="8">No rooms available</td>
             </tr>
           )}
         </tbody>

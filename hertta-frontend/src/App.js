@@ -2,110 +2,87 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import './global.css';
 import './App.css';
-import DeviceDataForm from './DeviceDataForm';
+import FormRoom from './FormRoom';
+import FormElectricHeater from './FormElectricHeater';
 import DataTable from './DataTable';
 import DeviceCards from './DeviceCards';
 import InputDataSender from './InputDataSender';
 import Layout from './Layout';
 import HomeEnergyFlowVisualization from './HomeEnergyFlowVisualization';
+import JsonViewer from './JsonViewer';
 import { fetchSensorsFromHomeAssistant } from './services/HomeAssistantInterface';
-import generateJsonContent from './generateJsonContent'; // Import the JSON generation function
+import generateJsonContent from './generateJsonContent';
 
 function App() {
   const [jsonContent, setJsonContent] = useState({});
   const [electricHeaters, setElectricHeaters] = useState([]);
-  const [interiorAirSensors, setInteriorAirSensors] = useState([]);
+  const [rooms, setRooms] = useState([]);
   const [activeDevices, setActiveDevices] = useState({});
-  const [apiKey, setApiKey] = useState(localStorage.getItem('homeAssistantApiKey') || ''); // Load API key from localStorage
-  const [homeAssistantSensors, setHomeAssistantSensors] = useState([]); // Store Home Assistant sensors
+  const [apiKey, setApiKey] = useState(localStorage.getItem('homeAssistantApiKey') || '');
+  const [homeAssistantSensors, setHomeAssistantSensors] = useState([]);
 
   useEffect(() => {
-    const defaultSensors = [
-      {
-        sensorId: 'sensor1',
-        roomId: 'room1',
-        roomWidth: 5,
-        roomLength: 4,
-        maxTemp: 298.15,
-        minTemp: 288.15,
-        t_e_conversion_int: 1,
-        t_e_conversion_env: 1,
-      },
-      {
-        sensorId: 'sensor2',
-        roomId: 'room2',
-        roomWidth: 6,
-        roomLength: 5,
-        maxTemp: 299.15,
-        minTemp: 289.15,
-        t_e_conversion_int: 1,
-        t_e_conversion_env: 1,
-      },
-    ];
-
-    const defaultHeaters = [
-      {
-        id: 'heater1',
-        capacity: 2,
-        roomId: 'room1',
-      },
-      {
-        id: 'heater2',
-        capacity: 3,
-        roomId: 'room2',
-      },
-    ];
-
-    setElectricHeaters(defaultHeaters);
-    setInteriorAirSensors(defaultSensors);
-
-    // Initialize active devices status
     const initialActiveDevices = {};
-    defaultHeaters.forEach((heater) => (initialActiveDevices[heater.id] = true));
-    defaultSensors.forEach((sensor) => (initialActiveDevices[sensor.sensorId] = true));
+    electricHeaters.forEach((heater) => (initialActiveDevices[heater.id] = true));
+    rooms.forEach((room) => (initialActiveDevices[room.sensorId] = true));
     setActiveDevices(initialActiveDevices);
-  }, []);
+  }, [electricHeaters, rooms]);
 
   useEffect(() => {
-    setJsonContent(generateJsonContent(electricHeaters, interiorAirSensors, activeDevices));
-  }, [electricHeaters, interiorAirSensors, activeDevices]);
+    setJsonContent(generateJsonContent(electricHeaters, rooms, activeDevices));
+  }, [electricHeaters, rooms, activeDevices]);
 
-  // Save API key to localStorage and state
   const handleSaveApiKey = () => {
-    localStorage.setItem('homeAssistantApiKey', apiKey); // Store API key in localStorage
+    localStorage.setItem('homeAssistantApiKey', apiKey);
     alert('API Key saved!');
   };
 
-  // Fetch sensors from Home Assistant
   const fetchSensors = async () => {
     try {
       if (!apiKey) {
         alert('Please enter an API key');
         return;
       }
-      console.log('Fetching sensors with API key:', apiKey);  // Debug print
-  
-      const sensors = await fetchSensorsFromHomeAssistant(apiKey); // Fetch sensors using the API key
-      
-      console.log('Fetched Sensors:', sensors);  // Debug print
-      setHomeAssistantSensors(sensors); // Store sensors in state
-  
+
+      const sensors = await fetchSensorsFromHomeAssistant(apiKey);
+      setHomeAssistantSensors(sensors);
+
       if (sensors.length === 0) {
         console.warn('No sensors were fetched from Home Assistant.');
       }
     } catch (error) {
       console.error('Failed to fetch sensors:', error);
     }
+  };
+
+  const addRoom = (room) => {
+    // Find the sensor data from the fetched sensors based on the selected sensor ID
+    const selectedSensorData = homeAssistantSensors.find(sensor => sensor.entity_id === room.sensorId);
+  
+    // Add the sensor state and unit to the room object
+    const updatedRoom = {
+      ...room,
+      sensorState: selectedSensorData ? selectedSensorData.state : 'N/A',
+      sensorUnit: selectedSensorData ? selectedSensorData.attributes.unit_of_measurement : '',
+    };
+  
+    const updatedRooms = [...rooms, updatedRoom];
+    setRooms(updatedRooms);
   };  
+
+  const addElectricHeater = (heater) => {
+    const updatedHeaters = [...electricHeaters, heater];
+    setElectricHeaters(updatedHeaters);
+  };
 
   const deleteHeater = (id) => {
     const updatedHeaters = electricHeaters.filter((heater) => heater.id !== id);
     setElectricHeaters(updatedHeaters);
   };
 
-  const deleteSensor = (id) => {
-    const updatedSensors = interiorAirSensors.filter((sensor) => sensor.sensorId !== id);
-    setInteriorAirSensors(updatedSensors);
+  const deleteRoom = (sensorId) => {
+    const updatedRooms = rooms.filter((room) => room.sensorId !== sensorId);
+    setRooms(updatedRooms);
   };
 
   const toggleDeviceStatus = (id) => {
@@ -118,21 +95,20 @@ function App() {
   return (
     <Router>
       <Layout>
-        <div className="api-key-input">
+        <div className="device-form">
           <h3>Enter Home Assistant API Key</h3>
-          <input
-            type="text"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)} // Update the API key state
-            placeholder="Enter your Home Assistant API Key"
-            style={{ padding: '10px', width: '80%', margin: '20px 0' }}
-          />
-          <button onClick={handleSaveApiKey} style={{ padding: '10px 20px' }}>Save API Key</button>
-
-          {/* Add button to fetch sensors after API key is saved */}
-          <button onClick={fetchSensors} style={{ padding: '10px 20px', marginLeft: '10px' }}>
-            Fetch Sensors
-          </button>
+          <div className="input-group">
+            <label htmlFor="api-key">API Key</label>
+            <input
+              type="text"
+              id="api-key"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="Enter your Home Assistant API Key"
+            />
+          </div>
+          <button onClick={handleSaveApiKey}>Save API Key</button>
+          <button onClick={fetchSensors}>Fetch Sensors</button>
         </div>
 
         <Routes>
@@ -142,19 +118,8 @@ function App() {
               <div className="app-container">
                 <div className="left-side">
                   <h1>Device Data Entry</h1>
-                  <DeviceDataForm
-                    electricHeaters={electricHeaters}
-                    setElectricHeaters={setElectricHeaters}
-                    interiorAirSensors={interiorAirSensors}
-                    setInteriorAirSensors={setInteriorAirSensors}
-                    homeAssistantSensors={homeAssistantSensors}  // Pass fetched Home Assistant sensors
-                  />
-                </div>
-                <div className="middle-section">
-                  <div>
-                    <h2>Generated JSON:</h2>
-                    <pre>{JSON.stringify(jsonContent, null, 2)}</pre>
-                  </div>
+                  <FormRoom addRoom={addRoom} homeAssistantSensors={homeAssistantSensors} />
+                  <FormElectricHeater addElectricHeater={addElectricHeater} rooms={rooms} />
                 </div>
                 <div className="right-side">
                   <InputDataSender jsonContent={jsonContent} />
@@ -167,10 +132,10 @@ function App() {
             element={
               <DataTable
                 electricHeaters={electricHeaters}
-                interiorAirSensors={interiorAirSensors}
-                homeAssistantSensors={homeAssistantSensors}  // Pass Home Assistant sensors here
+                rooms={rooms}
+                homeAssistantSensors={homeAssistantSensors}
                 deleteHeater={deleteHeater}
-                deleteSensor={deleteSensor}
+                deleteRoom={deleteRoom}
               />
             }
           />
@@ -179,13 +144,12 @@ function App() {
             element={
               <DeviceCards
                 electricHeaters={electricHeaters}
-                interiorAirSensors={interiorAirSensors}
+                rooms={rooms}
                 activeDevices={activeDevices}
                 toggleDeviceStatus={toggleDeviceStatus}
               />
             }
           />
-          {/* New Route for the Graph */}
           <Route
             path="/processes-graph"
             element={
@@ -194,6 +158,10 @@ function App() {
                 <HomeEnergyFlowVisualization processes={jsonContent.processes || {}} />
               </div>
             }
+          />
+          <Route
+            path="/json-viewer"
+            element={<JsonViewer jsonContent={jsonContent} />}
           />
         </Routes>
       </Layout>

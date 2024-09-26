@@ -23,7 +23,9 @@
     "webpack": "^5.94.0"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "concurrently \"npm run start-react\" \"npm run start-python\"",
+    "start-react": "react-scripts start",
+    "start-python": "cd ../mock-home-assistant && python app.py",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"

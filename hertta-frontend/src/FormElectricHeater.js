@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import './DataForm.css'; // Import the updated CSS
 
-function ElectricHeaterForm({ addElectricHeater, rooms }) {
+function FormElectricHeater({ addElectricHeater, rooms }) {
   const [heaterId, setHeaterId] = useState('');
   const [capacity, setCapacity] = useState('');
   const [roomId, setRoomId] = useState('');
@@ -30,7 +31,7 @@ function ElectricHeaterForm({ addElectricHeater, rooms }) {
         />
       </div>
       <div className="input-group">
-        <label>Capacity:</label>
+        <label>Capacity (kW):</label>
         <input
           type="number"
           value={capacity}
@@ -53,4 +54,4 @@ function ElectricHeaterForm({ addElectricHeater, rooms }) {
   );
 }
 
-export default ElectricHeaterForm;
+export default FormElectricHeater;
