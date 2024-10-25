@@ -35,9 +35,9 @@ function InputDataCreator({ setJsonContent, electricHeaters, interiorAirSensors,
         t: timestamps,
         dtf: 0.0,
         is_variable_dt: false,
-        variable_dt: [], // Added for Rust Temporals structure compatibility
-        ts_format: "" // Added for Rust Temporals structure compatibility
-      }
+        variable_dt: [],
+        ts_format: "",
+      },
     };
 
     const setupData = Input_SetupData();
@@ -54,7 +54,7 @@ function InputDataCreator({ setJsonContent, electricHeaters, interiorAirSensors,
     const bidSlotsData = generateBidSlotsData();
 
     const reserveType = { reserve_type: {} };
-    const nodeDelay = { node_delay: [] }; // Correctly specifying it as an empty list
+    const nodeDelay = { node_delay: [] };
     const nodeHistories = { node_histories: {} };
     const inflowBlocks = { inflow_blocks: {} };
 
@@ -73,7 +73,7 @@ function InputDataCreator({ setJsonContent, electricHeaters, interiorAirSensors,
       ...reserveType,
       ...nodeDelay,
       ...nodeHistories,
-      ...inflowBlocks
+      ...inflowBlocks,
     };
 
     console.log(JSON.stringify(combinedData, null, 2)); // Log the generated JSON to debug

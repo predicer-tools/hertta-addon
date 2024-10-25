@@ -23,7 +23,7 @@ pub struct OptimizationData {
     pub time_data: Option<TimeData>,
     pub weather_data: Option<WeatherData>,
     pub elec_price_data: Option<ElectricityPriceData>,
-    pub control_results: Option<Vec<DataTable>>,
+    pub control_results: Option<BTreeMap<String, TimeSeriesData>>,
     pub input_data_batch: Option<Vec<(String, Vec<u8>)>>,
 }
 

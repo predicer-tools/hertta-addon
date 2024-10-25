@@ -1,56 +1,31 @@
-from flask import Flask, jsonify, request, abort
-from flask_cors import CORS  # Import CORS
+from flask import Flask, jsonify, request
+import requests
+import time
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
 
-# Simulated Home Assistant API key (token)
-VALID_API_KEY = 'hasskey'  # Replace this with your test token
+# Time-series control function
+@app.route('/api/time-series-control', methods=['POST'])
+def time_series_control():
+    data = request.json
+    entity_id = data.get('entityId')
 
-# Simulated sensor data
-mock_sensors = [
-    {
-        "entity_id": "sensor.temperature_living_room",
-        "state": "22.5",
-        "attributes": {
-            "friendly_name": "Living Room Temperature",
-            "unit_of_measurement": "°C"
-        }
-    },
-    {
-        "entity_id": "sensor.temperature_bedroom",
-        "state": "19.0",
-        "attributes": {
-            "friendly_name": "Bedroom Temperature",
-            "unit_of_measurement": "°C"
-        }
-    },
-    {
-        "entity_id": "sensor.humidity_living_room",
-        "state": "45",
-        "attributes": {
-            "friendly_name": "Living Room Humidity",
-            "unit_of_measurement": "%"
-        }
-    }
-]
+    # Time-series control: Turn the heater on and off every 5 seconds for 30 seconds
+    for i in range(3):
+        print(f"Turning {entity_id} ON")
+        control_heater(entity_id, "turn_on")
+        time.sleep(5)  # Keep it ON for 5 seconds
 
-# Middleware to check API key
-def check_api_key():
-    auth_header = request.headers.get('Authorization', '')
-    print(f"Received API Key: {auth_header}")  # Debug print
-    if auth_header != f"Bearer {VALID_API_KEY}":
-        print("Invalid API Key!")  # Debug print
-        abort(401, description="Unauthorized: Invalid API key")
-    print("API Key is valid!")  # Debug print
+        print(f"Turning {entity_id} OFF")
+        control_heater(entity_id, "turn_off")
+        time.sleep(5)  # Keep it OFF for 5 seconds
+    
+    return jsonify({"message": "Time-series control complete"}), 200
 
-# Home Assistant API endpoint mock for '/api/states'
-@app.route('/api/states', methods=['GET'])
-def get_states():
-    check_api_key()  # Validate the API key
-    print("Sending mock sensor data...")  # Debug print
-    return jsonify(mock_sensors)
+def control_heater(entity_id, action):
+    # Your Home Assistant API logic to control the heater
+    # Add your API token and logic for sending turn_on/turn_off commands
+    pass
 
-# Running the app on port 8123, same as Home Assistant default port
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8123, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)

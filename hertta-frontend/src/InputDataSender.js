@@ -1,36 +1,71 @@
-import React from 'react';
+// InputDataSender.js
 
-function InputDataSender({ jsonContent }) {
-  const handleSendData = async () => {
-    try {
-      if (!jsonContent) {
-        console.error('No JSON content generated');
-        return;
-      }
+import React, { useState } from 'react';
 
-      const response = await fetch('http://localhost:8000/process_json', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(jsonContent), // Ensure jsonContent is stringified here
+function InputDataSender({ inputData }) {
+  const [isSending, setIsSending] = useState(false);
+  const [responseData, setResponseData] = useState(null);
+  const [error, setError] = useState(null);
+
+  const handleSendData = () => {
+    setIsSending(true);
+    setError(null);
+
+    // Prepare the OptimizationData to send
+    const optimizationData = {
+      fetch_weather_data: true,
+      fetch_elec_data: true,
+      fetch_time_data: false,
+      country: "FI",
+      location: "Hervanta",
+      timezone: null,
+      elec_price_source: "Elering",
+      model_data: inputData,
+      time_data: null,
+      weather_data: null,
+      elec_price_data: null,
+      control_results: null,
+      input_data_batch: null,
+    };
+
+    fetch('http://127.0.0.1:3030/api/optimize', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(optimizationData)
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Network response was not ok, status ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Received optimization data:', data);
+        setResponseData(data);
+        setIsSending(false);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        setError(error.toString());
+        setIsSending(false);
       });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Backend response:', result);
-        // Handle backend response if needed
-      } else {
-        console.error('Failed to send JSON data to the backend');
-      }
-    } catch (error) {
-      console.error('Error sending JSON data:', error);
-    }
   };
 
   return (
     <div>
-      <button onClick={handleSendData}>Send Data</button>
+      <h2>Send Input Data</h2>
+      <button onClick={handleSendData} disabled={isSending}>
+        {isSending ? 'Sending...' : 'Send Data to Server'}
+      </button>
+      {error && <p style={{ color: 'red' }}>Error: {error}</p>}
+      {responseData && (
+        <div>
+          <h3>Received Optimization Data:</h3>
+          <pre>{JSON.stringify(responseData, null, 2)}</pre>
+        </div>
+      )}
     </div>
   );
 }

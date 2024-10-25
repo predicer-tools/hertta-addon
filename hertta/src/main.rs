@@ -6,6 +6,7 @@ mod errors;
 mod event_loop;
 mod arrow_input;
 mod arrow_errors;
+mod data_processor;
 
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE, AUTHORIZATION};
 use serde_json::json;
@@ -221,9 +222,110 @@ pub fn run_python_script() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+use serde::{Deserialize, Serialize};
+use std::collections::{BTreeMap};
 
+
+// Define the Results structure
+#[derive(Serialize, Clone, Debug)]
+struct Results {
+    running_id: i64,
+    results: BTreeMap<String, f64>,
+}
+/* 
+// Handler for the /api/optimize route
+async fn handle_optimize(
+    params: HashMap<String, String>,
+    input_data: InputData,
+) -> Result<impl warp::Reply, warp::Rejection> {
+    // Extract and parse query parameters
+    let fetch_time_data = params.get("fetch_time_data").map_or(false, |v| v == "true");
+    let fetch_weather_data = params.get("fetch_weather_data").map_or(false, |v| v == "true");
+    let fetch_elec_data = params.get("fetch_elec_data").map_or(false, |v| v == "elering" || v == "entsoe");
+    let elec_price_source = params.get("fetch_elec_data").cloned();
+    let country = params.get("country").cloned();
+    let location = params.get("location").cloned();
+
+    println!("Received optimization request with options:");
+    println!("Fetch time data: {}", fetch_time_data);
+    println!("Fetch weather data: {}", fetch_weather_data);
+    println!("Fetch electricity data: {}", fetch_elec_data);
+    println!("Electricity price source: {:?}", elec_price_source);
+    println!("Country: {:?}", country);
+    println!("Location: {:?}", location);
+
+    // Create OptimizationData instance with received InputData
+    let optimization_data = OptimizationData {
+        fetch_weather_data,
+        fetch_elec_data,
+        fetch_time_data,
+        country,
+        location,
+        timezone: None,
+        elec_price_source,
+        model_data: Some(input_data.clone()), // The input_data is used here
+        time_data: None,
+        weather_data: None,
+        elec_price_data: None,
+        control_results: None,
+        input_data_batch: None,
+    };
+
+    // Print the OptimizationData for debugging
+    println!("Created OptimizationData for processing: {:?}", optimization_data);
+
+    // Simulate processing with OptimizationData (Here you would use optimization_data for computation)
+    // For this example, we're just simulating and generating predefined results
+
+
+    // Simulate some processing delay (optional)
+    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+
+    // Respond with the Results as JSON (do not include OptimizationData in the response)
+    Ok(warp::reply::json(&results))
+}
+*/
+use std::convert::Infallible;
+use warp::http::Method;
+use warp::cors::Cors;
+
+async fn handle_optimize(
+    mut optimization_data: OptimizationData,
+) -> Result<impl warp::Reply, warp::Rejection> {
+    // Ensure that model_data is present
+    if let Some(ref model_data) = optimization_data.model_data {
+        // Process the model_data here
+        let control_results = data_processor::generate_control_results(model_data);
+
+        // Populate the control_results field in optimization_data
+        optimization_data.control_results = Some(control_results);
+    }
+
+    // Return the optimization_data as JSON
+    Ok(warp::reply::json(&optimization_data))
+}
+
+#[tokio::main]
+async fn main() {
+    // Configure CORS
+    let cors = warp::cors()
+        .allow_origin("http://localhost:3000") // or .allow_any_origin() for development
+        .allow_methods(&[Method::GET, Method::POST, Method::OPTIONS])
+        .allow_headers(vec!["Content-Type"]);
+
+    // Define the /api/optimize route
+    let optimize_route = warp::path!("api" / "optimize")
+        .and(warp::post())
+        .and(warp::body::json())
+        .and_then(handle_optimize)
+        .with(cors); // Apply CORS to this route
+
+    println!("Starting Warp server on http://127.0.0.1:3030");
+    warp::serve(optimize_route)
+        .run(([127, 0, 0, 1], 3030))
+        .await;
+
+    /* 
     // Define a route with query parameters for optimization
     let optimize_route = warp::path("optimize")
         .and(warp::post())
@@ -293,6 +395,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .await;
 
     Ok(())
+    */
     
 }
 
