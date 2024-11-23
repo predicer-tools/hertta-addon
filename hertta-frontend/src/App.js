@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import './global.css';
+// src/App.js
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { Route, Routes } from 'react-router-dom';
 import './App.css';
 import FormRoom from './FormRoom';
 import DataTable from './DataTable';
@@ -8,103 +9,370 @@ import Layout from './Layout';
 import HomeEnergyFlowVisualization from './HomeEnergyFlowVisualization';
 import JsonViewer from './JsonViewer';
 import generateJsonContent from './generateJsonContent';
-import generateProcessesData from './Input_Processes';
 import FormElectricHeater from './FormElectricHeater';
 import DeviceCards from './DeviceCards';
+import connectWebSocket from './homeAssistantWebSocket';
+import SendInputData from './SendInputData';
+import ControlSignalsPopup from './ControlSignalsPopup';
+import { generateControlSignals } from './utils/generateControlSignals';
+import WeatherForecast from './WeatherForecast'; // Import the WeatherForecast component
 
 function App() {
   const [jsonContent, setJsonContent] = useState({});
-  const [electricHeaters, setElectricHeaters] = useState([]);
-  const [processes, setProcesses] = useState({});
   const [rooms, setRooms] = useState([]);
-  const [apiKey, setApiKey] = useState(localStorage.getItem('homeAssistantApiKey') || '');
+  const [apiKey, setApiKey] = useState('');
   const [homeAssistantSensors, setHomeAssistantSensors] = useState([]);
   const [fetchedDevices, setFetchedDevices] = useState([]);
   const [activeDevices, setActiveDevices] = useState({});
   const [error, setError] = useState(null);
-  const [message, setMessage] = useState(''); // New state for messages
+  const [message] = useState('');
 
-  useEffect(() => {
-    setJsonContent(generateJsonContent(electricHeaters, rooms, activeDevices));
-  }, [electricHeaters, rooms, activeDevices]);
+  // New States: Country and Location Inputs
+  const [country, setCountry] = useState('');
+  const [location, setLocation] = useState('');
+  const [savedCountry, setSavedCountry] = useState('');
+  const [savedLocation, setSavedLocation] = useState('');
 
+  // New State: Outside Temperature
+  const [outsideTemp, setOutsideTemp] = useState(null); // Initialize as null
+
+  // State for the control signals popup
+  const [isControlPopupOpen, setIsControlPopupOpen] = useState(false);
+  const [selectedDevice, setSelectedDevice] = useState(null);
+  const [controlSignals, setControlSignals] = useState([]);
+
+  // New State: User-Defined Heating Devices
+  const [userHeatingDevices, setUserHeatingDevices] = useState([]);
+
+  // State to store the disconnect function for WebSocket
+  const [webSocketDisconnect, setWebSocketDisconnect] = useState(null);
+
+  // Load Basic Input Data from Local Storage on Mount
   useEffect(() => {
-    if (electricHeaters.length > 0) {
-      const processData = generateProcessesData(electricHeaters);
-      setProcesses(processData);
+    const storedApiKey = localStorage.getItem('homeAssistantApiKey');
+    const storedCountry = localStorage.getItem('country');
+    const storedLocation = localStorage.getItem('location');
+    const storedRooms = localStorage.getItem('rooms');
+    const storedHeaters = localStorage.getItem('userHeatingDevices');
+    const storedFetchedDevices = localStorage.getItem('fetchedDevices');
+    const storedActiveDevices = localStorage.getItem('activeDevices');
+
+    if (storedApiKey) {
+      setApiKey(storedApiKey);
     }
-  }, [electricHeaters]);
+    if (storedCountry) {
+      setCountry(storedCountry);
+      setSavedCountry(storedCountry);
+    }
+    if (storedLocation) {
+      setLocation(storedLocation);
+      setSavedLocation(storedLocation);
+    }
+    if (storedRooms) {
+      try {
+        setRooms(JSON.parse(storedRooms));
+      } catch (e) {
+        console.error('Failed to parse rooms from localStorage', e);
+      }
+    }
+    if (storedHeaters) {
+      try {
+        setUserHeatingDevices(JSON.parse(storedHeaters));
+      } catch (e) {
+        console.error('Failed to parse heaters from localStorage', e);
+      }
+    }
+    if (storedFetchedDevices) {
+      try {
+        setFetchedDevices(JSON.parse(storedFetchedDevices));
+      } catch (e) {
+        console.error('Failed to parse fetchedDevices from localStorage', e);
+      }
+    }
+    if (storedActiveDevices) {
+      try {
+        setActiveDevices(JSON.parse(storedActiveDevices));
+      } catch (e) {
+        console.error('Failed to parse activeDevices from localStorage', e);
+      }
+    }
+  }, []);
 
-  const handleSaveApiKey = () => {
+  // Save Basic Input Data to Local Storage Whenever They Change
+  useEffect(() => {
     localStorage.setItem('homeAssistantApiKey', apiKey);
-    alert('API Key saved!');
-  };
+  }, [apiKey]);
 
+  useEffect(() => {
+    localStorage.setItem('country', savedCountry);
+  }, [savedCountry]);
+
+  useEffect(() => {
+    localStorage.setItem('location', savedLocation);
+  }, [savedLocation]);
+
+  // Save Rooms to Local Storage Whenever They Change
+  useEffect(() => {
+    localStorage.setItem('rooms', JSON.stringify(rooms));
+  }, [rooms]);
+
+  // Save User-Defined Heating Devices to Local Storage Whenever They Change
+  useEffect(() => {
+    localStorage.setItem('userHeatingDevices', JSON.stringify(userHeatingDevices));
+  }, [userHeatingDevices]);
+
+  // Save Fetched Devices to Local Storage Whenever They Change
+  useEffect(() => {
+    localStorage.setItem('fetchedDevices', JSON.stringify(fetchedDevices));
+  }, [fetchedDevices]);
+
+  // Save Active Devices to Local Storage Whenever They Change
+  useEffect(() => {
+    localStorage.setItem('activeDevices', JSON.stringify(activeDevices));
+  }, [activeDevices]);
+
+  // Generate the JSON content whenever relevant states change
+  useEffect(() => {
+    const sensorStates = rooms.reduce((acc, room) => {
+      acc[room.sensorId] =
+        room.sensorState !== undefined && room.sensorState !== null
+          ? room.sensorState
+          : 'N/A';
+      return acc;
+    }, {});
+
+    // Collect all devices from rooms
+    const allDevices = rooms.flatMap((room) => room.devices);
+
+    const generatedJson = generateJsonContent(
+      allDevices,
+      rooms,
+      activeDevices,
+      sensorStates
+    );
+    setJsonContent(generatedJson);
+  }, [rooms, activeDevices]);
+
+  // Handle updates for sensor and device state changes
+  const handleEntityUpdate = useCallback((entityId, newState) => {
+    if (entityId.startsWith('sensor.')) {
+      // Handle sensor updates
+      setRooms((prevRooms) =>
+        prevRooms.map((room) => {
+          if (room.sensorId === entityId) {
+            return {
+              ...room,
+              sensorState: newState.state,
+              sensorUnit: newState.attributes.unit_of_measurement,
+            };
+          }
+          return room;
+        })
+      );
+
+      // Update the jsonContent with the new sensor state
+      setJsonContent((prevData) => {
+        if (!prevData.nodes) return prevData;
+        const updatedNodes = { ...prevData.nodes };
+
+        Object.keys(updatedNodes).forEach((nodeKey) => {
+          if (nodeKey.startsWith(entityId)) {
+            updatedNodes[nodeKey].state.initial_state = parseFloat(
+              newState.state
+            );
+          }
+        });
+
+        return { ...prevData, nodes: updatedNodes };
+      });
+    } else {
+      // Handle device updates
+      setFetchedDevices((prevDevices) =>
+        prevDevices.map((device) => {
+          if (device.entity_id === entityId) {
+            return { ...device, state: newState.state };
+          }
+          return device;
+        })
+      );
+
+      // Update activeDevices based on the device's new state
+      setActiveDevices((prevStatus) => ({
+        ...prevStatus,
+        [entityId]: newState.state === 'on', // Assuming 'on' signifies active
+      }));
+
+      // Optionally, update jsonContent if devices are part of it
+      setJsonContent((prevData) => {
+        if (!prevData.nodes) return prevData;
+        const updatedNodes = { ...prevData.nodes };
+
+        Object.keys(updatedNodes).forEach((nodeKey) => {
+          if (nodeKey === entityId) {
+            updatedNodes[nodeKey].status =
+              newState.state === 'on' ? 'on' : 'off';
+          }
+        });
+
+        return { ...prevData, nodes: updatedNodes };
+      });
+    }
+  }, []);
+
+  // Fetch all devices and sensors without any filters
   const fetchAllDevicesAndSensors = async () => {
     if (!apiKey) {
       setError('API key is missing. Please enter your API key.');
       return;
     }
     try {
-      const response = await fetch('http://192.168.129.96:8123/api/states', {
+      const response = await fetch('http://192.168.41.27:8123/api/states', { // Updated URL
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
+          Authorization: `Bearer ${apiKey}`,
         },
       });
 
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        throw new Error(`Network response was not ok: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
-      const sensors = data.filter(entity => entity.entity_id.startsWith('sensor.'));
-      const nonSensorDevices = data.filter(entity => !entity.entity_id.startsWith('sensor.'));
 
-      setHomeAssistantSensors(sensors);
-      setFetchedDevices(nonSensorDevices); // Store all devices
+      // Remove filters: fetch all devices and sensors
+      setHomeAssistantSensors(data); // Assuming all entities can be treated as sensors
+      setFetchedDevices(data); // And as devices as well
+
+      // Initialize activeDevices based on device states
+      const initialActiveDevices = {};
+      data.forEach((device) => {
+        initialActiveDevices[device.entity_id] = device.state === 'on'; // Assuming 'on' signifies active
+      });
+      setActiveDevices(initialActiveDevices);
+
       setError(null);
+
+      // Establish WebSocket connection after successful fetch
+      if (webSocketDisconnect) {
+        webSocketDisconnect(); // Disconnect previous WebSocket if any
+      }
+      const disconnect = connectWebSocket(apiKey, handleEntityUpdate);
+      setWebSocketDisconnect(() => disconnect);
     } catch (error) {
       console.error('Error fetching devices:', error);
       setError(error.message);
     }
   };
 
-  const addRoom = (room) => {
-    const selectedSensorData = homeAssistantSensors.find(sensor => sensor.entity_id === room.sensorId);
-    const updatedRoom = {
-      ...room,
-      sensorState: selectedSensorData ? selectedSensorData.state : 'N/A',
-      sensorUnit: selectedSensorData ? selectedSensorData.attributes.unit_of_measurement : '',
+  // Clean up the WebSocket connection when the component unmounts
+  useEffect(() => {
+    return () => {
+      if (webSocketDisconnect) {
+        webSocketDisconnect();
+      }
     };
-    setRooms([...rooms, updatedRoom]);
+  }, [webSocketDisconnect]);
 
-      // Set the new room as active by default
+  const handleSaveApiKey = () => {
+    localStorage.setItem('homeAssistantApiKey', apiKey);
+    alert('API Key saved!');
+  };
+
+  // New Function: Handle Saving Country and Location
+  const handleSaveLocation = () => {
+    if (!country.trim() || !location.trim()) {
+      setError('Please enter both Country and Location.');
+      return;
+    }
+    setSavedCountry(country.trim());
+    setSavedLocation(location.trim());
+    localStorage.setItem('country', country.trim());
+    localStorage.setItem('location', location.trim());
+    alert('Country and Location saved!');
+    setError(null);
+  };
+
+  // Load saved Country and Location from localStorage on mount
+  useEffect(() => {
+    const storedCountry = localStorage.getItem('country');
+    const storedLocation = localStorage.getItem('location');
+    if (storedCountry) {
+      setCountry(storedCountry);
+      setSavedCountry(storedCountry);
+    }
+    if (storedLocation) {
+      setLocation(storedLocation);
+      setSavedLocation(storedLocation);
+    }
+  }, []);
+
+  // Function to update outsideTemp from WeatherForecast
+  const updateOutsideTemp = (temp) => {
+    setOutsideTemp(temp);
+  };
+
+  // Modify addRoom
+  const addRoom = (room) => {
+    // Initialize devices array
+    const newRoom = { ...room, devices: [] };
+    setRooms([...rooms, newRoom]);
+
     setActiveDevices((prevStatus) => ({
       ...prevStatus,
       [room.sensorId]: true,
     }));
   };
 
+  // Modify addElectricHeater
   const addElectricHeater = (heater) => {
-    setElectricHeaters([...electricHeaters, heater]);
-  
-    // Set the new heater as active by default
+    setRooms((prevRooms) =>
+      prevRooms.map((room) => {
+        if (room.roomId === heater.roomId) {
+          // Add device to this room's devices array
+          return {
+            ...room,
+            devices: [...room.devices, heater],
+          };
+        } else {
+          return room;
+        }
+      })
+    );
+
     setActiveDevices((prevStatus) => ({
       ...prevStatus,
       [heater.id]: true,
     }));
+    setUserHeatingDevices([...userHeatingDevices, heater.id]);
+  };
+
+  // Modify deleteHeater
+  const deleteHeater = (heaterId, roomId) => {
+    setRooms((prevRooms) =>
+      prevRooms.map((room) => {
+        if (room.roomId === roomId) {
+          return {
+            ...room,
+            devices: room.devices.filter((device) => device.id !== heaterId),
+          };
+        } else {
+          return room;
+        }
+      })
+    );
+    setUserHeatingDevices(
+      userHeatingDevices.filter((deviceId) => deviceId !== heaterId)
+    );
+    setActiveDevices((prevStatus) => {
+      const updatedStatus = { ...prevStatus };
+      delete updatedStatus[heaterId];
+      return updatedStatus;
+    });
   };
 
   const deleteRoom = (sensorId) => {
     const updatedRooms = rooms.filter((room) => room.sensorId !== sensorId);
     setRooms(updatedRooms);
-  };
-
-  const deleteHeater = (id) => {
-    const updatedHeaters = electricHeaters.filter((heater) => heater.id !== id);
-    setElectricHeaters(updatedHeaters);
   };
 
   const toggleDeviceStatus = (id) => {
@@ -114,154 +382,176 @@ function App() {
     }));
   };
 
-  // New function to handle optimization
-  const handleStartOptimize = () => {
-    if (electricHeaters.length === 0) {
-      setMessage('Devices not defined');
-      return;
-    }
-
-    setMessage(''); // Clear any previous messages
-
-    // Prepare the OptimizationData
-    const optimizationData = {
-      fetch_weather_data: true,
-      fetch_elec_data: true,
-      fetch_time_data: false,
-      country: "FI",
-      location: "Hervanta",
-      timezone: null,
-      elec_price_source: "Elering",
-      model_data: jsonContent,
-      time_data: null,
-      weather_data: null,
-      elec_price_data: null,
-      control_results: null,
-      input_data_batch: null,
-    };
-
-    // Send the data to the backend
-    fetch('http://127.0.0.1:3030/api/optimize', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(optimizationData)
-    })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`Network response was not ok, status ${response.status}`);
-        }
-        return response.json();
-      })
-      .then(data => {
-        console.log('Received optimization data:', data);
-        setMessage('Optimization successful!'); // You can update this message as needed
-        // Handle the response data as needed
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        setMessage('Error occurred: ' + error.toString());
-      });
+  // Function to handle when a device is clicked to show control signals
+  const handleDeviceClick = (device) => {
+    if (!device || !device.id) return;
+    setSelectedDevice(device.id);
+    const signals = generateControlSignals();
+    setControlSignals(signals);
+    setIsControlPopupOpen(true);
   };
 
   return (
-    <Router>
-      <Layout>
-        <div className="device-form">
-          <h3>Enter Home Assistant API Key</h3>
-          <div className="input-group">
-            <label htmlFor="api-key">API Key</label>
-            <input
-              type="text"
-              id="api-key"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Enter your Home Assistant API Key"
-            />
-          </div>
-          <button onClick={handleSaveApiKey}>Save API Key</button>
-          <button onClick={fetchAllDevicesAndSensors}>Fetch Sensors and Devices</button>
-          {error && <p style={{ color: 'red' }}><strong>Error:</strong> {error}</p>}
-        </div>
-
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <div className="app-container">
-                <div className="left-side">
-                  <h1>Device Data Entry</h1>
-                  <FormRoom addRoom={addRoom} homeAssistantSensors={homeAssistantSensors} />
-                  <FormElectricHeater addElectricHeater={addElectricHeater} rooms={rooms} fetchedDevices={fetchedDevices} />
-                </div>
-                <div className="right-side">
-                  <button onClick={handleStartOptimize}>Start Optimize</button>
-                  {message && <p>{message}</p>}
-                </div>
-              </div>
-            }
-          />
-          <Route
-            path="/device-cards"
-            element={
-              <div>
-                <DataTable
-                  electricHeaters={electricHeaters}
-                  rooms={rooms}
-                  homeAssistantSensors={homeAssistantSensors}
-                  fetchedDevices={fetchedDevices}
-                  deleteHeater={deleteHeater}
-                  deleteRoom={deleteRoom}
-                />
-              </div>
-            }
-          />
-          <Route
-            path="/processes-graph"
-            element={
-              <div className="graph-container">
-                <h1>Processes Graph</h1>
-                <HomeEnergyFlowVisualization processes={processes} />
-              </div>
-            }
-          />
-          <Route
-            path="/json-viewer"
-            element={<JsonViewer jsonContent={jsonContent} />}
-          />
-          <Route
-            path="/electric-heaters"
-            element={
-              <DeviceCards
-                electricHeaters={electricHeaters}
+    <Layout>
+      <Routes>
+        {/* Energy Flow Visualization as Home Page */}
+        <Route
+          path="/"
+          element={
+            <div className="graph-container">
+              <h1>Energy Flow Visualization</h1>
+              <HomeEnergyFlowVisualization
                 rooms={rooms}
                 activeDevices={activeDevices}
-                toggleDeviceStatus={toggleDeviceStatus}
-                apiKey={apiKey}
+                onDeviceClick={handleDeviceClick}
+                userHeatingDevices={userHeatingDevices}
+                outsideTemp={outsideTemp} // Pass outsideTemp as prop
               />
-            }
-          />
-          <Route
-            path="/"
-            element={
-              <div className="app-container">
-                <div className="left-side">
-                  <h1>Device Data Entry</h1>
-                  <FormRoom addRoom={addRoom} homeAssistantSensors={homeAssistantSensors} />
-                  <FormElectricHeater addElectricHeater={addElectricHeater} rooms={rooms} fetchedDevices={fetchedDevices} />
+              {/* Include the control signals popup component */}
+              <ControlSignalsPopup
+                isOpen={isControlPopupOpen && !!selectedDevice}
+                onClose={() => {
+                  setSelectedDevice(null);
+                  setIsControlPopupOpen(false);
+                }}
+                deviceId={selectedDevice}
+                controlSignals={controlSignals}
+              />
+            </div>
+          }
+        />
+
+        {/* Input Data Forms Route */}
+        <Route
+          path="/input-data"
+          element={
+            <div className="app-container">
+              <div className="left-side">
+                <h1>Device Data Entry</h1>
+                {/* API Key Input and Forms */}
+                <div className="device-form">
+                  <h3>Enter Home Assistant API Key</h3>
+                  <div className="input-group">
+                    <label htmlFor="api-key">API Key</label>
+                    <input
+                      type="text"
+                      id="api-key"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      placeholder="Enter your Home Assistant API Key"
+                    />
+                  </div>
+                  <div className="button-group">
+                    <button onClick={handleSaveApiKey}>Save API Key</button>
+                    <button
+                      onClick={fetchAllDevicesAndSensors}
+                      disabled={!savedCountry || !savedLocation}
+                      title={
+                        !savedCountry || !savedLocation
+                          ? 'Please save Country and Location first.'
+                          : 'Fetch Sensors and Devices'
+                      }
+                    >
+                      Fetch Sensors and Devices
+                    </button>
+                  </div>
+                  {error && (
+                    <p className="error-message">
+                      <strong>Error:</strong> {error}
+                    </p>
+                  )}
                 </div>
-                <div className="right-side">
-                  <button onClick={handleStartOptimize}>Start Optimize</button>
-                  {message && <p>{message}</p>}
-                  <JsonViewer jsonContent={jsonContent} />
+
+                {/* New Input Fields for Country and Location */}
+                <div className="device-form">
+                  <h3>Enter Country and Location</h3>
+                  <div className="input-group">
+                    <label htmlFor="country">Country</label>
+                    <input
+                      type="text"
+                      id="country"
+                      value={country}
+                      onChange={(e) => setCountry(e.target.value)}
+                      placeholder="e.g., Finland"
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label htmlFor="location">Location</label>
+                    <input
+                      type="text"
+                      id="location"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      placeholder="e.g., Helsinki"
+                    />
+                  </div>
+                  <div className="button-group">
+                    <button onClick={handleSaveLocation}>Save Location</button>
+                  </div>
                 </div>
+
+                {/* Forms for Room and Electric Heater */}
+                <FormRoom
+                  addRoom={addRoom}
+                  homeAssistantSensors={homeAssistantSensors}
+                />
+                <FormElectricHeater
+                  addElectricHeater={addElectricHeater}
+                  rooms={rooms}
+                  fetchedDevices={fetchedDevices}
+                />
               </div>
-            }
-          />
-        </Routes>
-      </Layout>
-    </Router>
+              <div className="right-side">
+                {/* Include the SendInputData component and pass jsonContent */}
+                <SendInputData jsonContent={jsonContent} />
+                {message && <p>{message}</p>}
+              </div>
+            </div>
+          }
+        />
+
+        {/* Data Table Route */}
+        <Route
+          path="/data-table"
+          element={
+            <div>
+              <DataTable
+                rooms={rooms}
+                homeAssistantSensors={homeAssistantSensors}
+                fetchedDevices={fetchedDevices}
+                deleteHeater={deleteHeater}
+                deleteRoom={deleteRoom}
+              />
+            </div>
+          }
+        />
+
+        {/* JSON Viewer Route */}
+        <Route
+          path="/json-viewer"
+          element={<JsonViewer jsonContent={jsonContent} />}
+        />
+
+        {/* Electric Heaters Route */}
+        <Route
+          path="/electric-heaters"
+          element={
+            <DeviceCards
+              rooms={rooms}
+              activeDevices={activeDevices}
+              toggleDeviceStatus={toggleDeviceStatus}
+              apiKey={apiKey}
+            />
+          }
+        />
+
+        {/* Weather Forecast Route */}
+        <Route
+          path="/weather-forecast"
+          element={<WeatherForecast place={savedLocation} updateOutsideTemp={updateOutsideTemp} />} // Pass 'place' and 'updateOutsideTemp' as props
+        />
+      </Routes>
+    </Layout>
   );
 }
 

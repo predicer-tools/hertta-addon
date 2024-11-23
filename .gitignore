@@ -1,0 +1,13 @@
+# Ignore virtual environments
+mock-backend/venv/
+
+# Python cache files
+*.pyc
+__pycache__/
+
+# Environment variables
+.env
+
+# IDE/editor directories
+.vscode/
+.idea/
