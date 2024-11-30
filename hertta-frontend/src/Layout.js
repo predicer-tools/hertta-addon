@@ -1,39 +1,27 @@
-// src/Layout.js
-
 import React, { useState } from 'react';
-import './Layout.css';
-import Sidebar from './Sidebar';
+import styles from './Layout.module.css';
+import Sidebar from './components/Sidebar/Sidebar';
 
 function Layout({ children }) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true); // Sidebar is open by default on larger screens
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
   return (
-    <div className="layout">
-      {/* Toggle Button */}
-      <button 
-        className="sidebar-toggle" 
-        onClick={toggleSidebar} 
-        aria-label={isSidebarOpen ? "Close Sidebar" : "Open Sidebar"}
-      >
-        {/* Hamburger Icon */}
-        <div className={`hamburger ${isSidebarOpen ? 'open' : ''}`}>
+    <div className={styles.layout}>
+      <button className={styles.sidebarToggle} onClick={toggleSidebar}>
+        <div className={`${styles.hamburger} ${isSidebarOpen ? styles.open : ''}`}>
           <span></span>
           <span></span>
           <span></span>
         </div>
       </button>
-
-      {/* Sidebar */}
       <Sidebar isOpen={isSidebarOpen} />
-
-      {/* Main Content */}
-      <div className={`content ${isSidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
+      <main className={`${styles.content} ${isSidebarOpen ? '' : styles['sidebar-closed']}`}>
         {children}
-      </div>
+      </main>
     </div>
   );
 }

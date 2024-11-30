@@ -1,17 +1,27 @@
-// index.js
+// src/index.js
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter as Router } from 'react-router-dom'; // Import BrowserRouter
-import './App.css';
+import './App.module.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import 'normalize.css';
+import { ConfigProvider } from './context/ConfigContext'; // Import ConfigProvider
+import { DataProvider } from './context/DataContext'; // Import DataProvider
+import { WeatherProvider } from './context/WeatherContext'; // Import WeatherProvider
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
     <Router>
-      <App />
+      <ConfigProvider>
+        <DataProvider>
+          <WeatherProvider>
+            <App />
+          </WeatherProvider>
+        </DataProvider>
+      </ConfigProvider>
     </Router>
   </React.StrictMode>
 );

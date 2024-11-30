@@ -4,15 +4,17 @@
   "private": true,
   "dependencies": {
     "@babel/core": "^7.25.2",
-    "@emotion/react": "^11.11.4",
-    "@emotion/styled": "^11.11.5",
-    "@mui/material": "^5.15.15",
+    "@emotion/react": "^11.13.5",
+    "@emotion/styled": "^11.13.5",
+    "@mui/icons-material": "^6.1.9",
+    "@mui/material": "^6.1.9",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.7.7",
-    "babel-loader": "^9.2.0",
     "d3": "^7.9.0",
+    "debug": "^4.3.7",
+    "detect-port-alt": "^1.1.6",
     "http-proxy-middleware": "^3.0.3",
     "js-yaml": "^4.1.0",
     "normalize.css": "^8.0.1",
@@ -21,15 +23,17 @@
     "react-dom": "^18.3.1",
     "react-flow-renderer": "^10.3.17",
     "react-router-dom": "^6.26.2",
-    "react-scripts": "^5.0.1",
+    "react-scripts": "^3.0.1",
+    "react-switch": "^7.0.0",
+    "react-tooltip": "^5.28.0",
     "recharts": "^2.13.3",
-    "web-vitals": "^2.1.4",
-    "webpack": "^5.94.0"
+    "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "concurrently \"npm run start-react\" \"npm run start-python\"",
-    "start-react": "react-scripts start --stats-children",
-    "start-python": "cd ../mock-home-assistant && python app.py",
+    "start": "concurrently \"npm run start-react\" \"npm run start-backend\"",
+    "start-react": "react-scripts start",
+    "start-backend": "python mock-backend/run.py",
+    "start-backend-weather": "python mock-backend/app/weather.py",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
@@ -54,6 +58,7 @@
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
-    "cross-env": "^7.0.3"
+    "cross-env": "^7.0.3",
+    "gh-pages": "^6.2.0"
   }
 }
