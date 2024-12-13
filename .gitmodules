@@ -2,3 +2,7 @@
 	path = hertta
 	url = https://github.com/predicer-tools/hertta.git
 	branch = graphql_config
+[submodule "hertta-frontend"]
+	path = hertta-frontend
+	url = https://github.com/predicer-tools/hertta-frontend.git
+	branch = graphql_ui
