@@ -6,6 +6,15 @@ import UpdateInputDataSetupPage from './UpdateInputDataSetupPage'; // update inp
 import AddNodePage from './AddNodePage'; // add node page
 import ViewNodesPage from './ViewNodesPage'; // view nodes page
 import UpdateNodeStatePage from './UpdateNodeStatePage'; // new update node state page
+import AddProcessPage from './AddProcessPage';
+import AddProcessGroupPage from './AddProcessGroupPage';
+import AddTopologyPage from './AddTopologyPage';
+import AddNodeHistoryPage from './AddNodeHistoryPage';
+import AddNodeDelayPage from './AddNodeDelayPage';
+import AddNodeDiffusionPage from './AddNodeDiffusionPage';
+import AddMarketPage from './AddMarketPage';
+import AddRiskPage from './AddRiskPage';
+import AddScenarioPage from './AddScenarioPage';
 import './App.css';
 
 const Home = () => {
@@ -54,6 +63,33 @@ function App() {
           <li>
             <Link to="/update-node-state">Update Node State</Link>
           </li>
+          <li>
+            <Link to="/add-process">Add Process</Link>
+          </li>
+          <li>
+            <Link to="/add-process-group">Add Process Group</Link>
+          </li>
+          <li>
+            <Link to="/add-topology">Add Topology</Link>
+          </li>
+          <li>
+            <Link to="/add-nodehistory">Add Node History</Link>
+          </li>
+          <li>
+            <Link to="/add-nodedelay">Add Node Delay</Link>
+          </li>
+          <li>
+            <Link to="/add-nodediffusion">Add Node Diffusion</Link>
+          </li>
+          <li>
+            <Link to="/add-market">Add Market</Link>
+          </li>
+          <li>
+            <Link to="/add-risk">Add Risk</Link>
+          </li>
+          <li>
+            <Link to="/add-scenario">Add Scenario</Link>
+          </li>
         </ul>
       </nav>
       <Routes>
@@ -62,6 +98,15 @@ function App() {
         <Route path="/add-node" element={<AddNodePage />} />
         <Route path="/view-nodes" element={<ViewNodesPage />} />
         <Route path="/update-node-state" element={<UpdateNodeStatePage />} />
+        <Route path="/add-process" element={<AddProcessPage />} />
+        <Route path="/add-process-group" element={<AddProcessGroupPage />} />
+        <Route path="/add-topology" element={<AddTopologyPage />} />
+        <Route path="/add-nodehistory" element={<AddNodeHistoryPage />} />
+        <Route path="/add-nodedelay" element={<AddNodeDelayPage />} />
+        <Route path="/add-nodediffusion" element={<AddNodeDiffusionPage />} />
+        <Route path="/add-market" element={<AddMarketPage />} />
+        <Route path="/add-risk" element={<AddRiskPage />} />
+        <Route path="/add-scenario" element={<AddScenarioPage />} />
       </Routes>
     </BrowserRouter>
   );

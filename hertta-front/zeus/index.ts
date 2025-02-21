@@ -1,7 +1,9 @@
 /* eslint-disable */
 
 import { AllTypesProps, ReturnTypes, Ops } from './const';
-export const HOST = "http://127.0.0.1:3030/graphql"
+
+
+export const HOST="http://127.0.0.1:3030/graphql"
 
 
 export const HEADERS = {}
@@ -969,7 +971,7 @@ export type ValueTypes = {
 	isMarket: boolean | Variable<any, string>,
 	isRes: boolean | Variable<any, string>,
 	cost: Array<ValueTypes["ValueInput"]> | Variable<any, string>,
-	inflow?: number | undefined | null | Variable<any, string>
+	inflow: Array<ValueTypes["ForecastValueInput"]> | Variable<any, string>
 };
 	["NewNodeDelay"]: {
 	fromNode: string | Variable<any, string>,
@@ -1290,7 +1292,7 @@ updateSettings?: [{	settingsInput: ValueTypes["SettingsInput"] | Variable<any, s
 	isRes?:boolean | `@${string}`,
 	state?:ValueTypes["State"],
 	cost?:ValueTypes["Value"],
-	inflow?:ValueTypes["Forecastable"],
+	inflow?:ValueTypes["ForecastValue"],
 		__typename?: boolean | `@${string}`
 }>;
 	["NodeDiffusion"]: AliasType<{
@@ -1480,7 +1482,12 @@ jobOutcome?: [{	jobId: number | Variable<any, string>},ValueTypes["JobOutcome"]]
   }
 
 export type ResolverInputTypes = {
-    /** Represents predefined clock options. */
+    ["schema"]: AliasType<{
+	query?:ResolverInputTypes["Query"],
+	mutation?:ResolverInputTypes["Mutation"],
+		__typename?: boolean | `@${string}`
+}>;
+	/** Represents predefined clock options. */
 ["Clock"]:Clock;
 	["ConstraintFactorType"]:ConstraintFactorType;
 	["ConstraintType"]:ConstraintType;
@@ -1555,7 +1562,7 @@ export type ResolverInputTypes = {
 	isMarket: boolean,
 	isRes: boolean,
 	cost: Array<ResolverInputTypes["ValueInput"]>,
-	inflow?: number | undefined | null
+	inflow: Array<ResolverInputTypes["ForecastValueInput"]>
 };
 	["NewNodeDelay"]: {
 	fromNode: string,
@@ -1876,7 +1883,7 @@ updateSettings?: [{	settingsInput: ResolverInputTypes["SettingsInput"]},Resolver
 	isRes?:boolean | `@${string}`,
 	state?:ResolverInputTypes["State"],
 	cost?:ResolverInputTypes["Value"],
-	inflow?:ResolverInputTypes["Forecastable"],
+	inflow?:ResolverInputTypes["ForecastValue"],
 		__typename?: boolean | `@${string}`
 }>;
 	["NodeDiffusion"]: AliasType<{
@@ -2068,16 +2075,15 @@ jobOutcome?: [{	jobId: number},ResolverInputTypes["JobOutcome"]],
 	ClockChoice?:ResolverInputTypes["ClockChoice"],
 	CustomStartTime?:ResolverInputTypes["CustomStartTime"],
 		__typename?: boolean | `@${string}`
-}>;
-	["schema"]: AliasType<{
-	query?:ResolverInputTypes["Query"],
-	mutation?:ResolverInputTypes["Mutation"],
-		__typename?: boolean | `@${string}`
 }>
   }
 
 export type ModelTypes = {
-    ["Clock"]:Clock;
+    ["schema"]: {
+	query?: ModelTypes["Query"] | undefined | null,
+	mutation?: ModelTypes["Mutation"] | undefined | null
+};
+	["Clock"]:Clock;
 	["ConstraintFactorType"]:ConstraintFactorType;
 	["ConstraintType"]:ConstraintType;
 	["Conversion"]:Conversion;
@@ -2151,7 +2157,7 @@ export type ModelTypes = {
 	isMarket: boolean,
 	isRes: boolean,
 	cost: Array<ModelTypes["ValueInput"]>,
-	inflow?: number | undefined | null
+	inflow: Array<ModelTypes["ForecastValueInput"]>
 };
 	["NewNodeDelay"]: {
 	fromNode: string,
@@ -2473,7 +2479,7 @@ See also [`chrono::DateTime`][2] for details.
 	isRes: boolean,
 	state?: ModelTypes["State"] | undefined | null,
 	cost: Array<ModelTypes["Value"]>,
-	inflow?: ModelTypes["Forecastable"] | undefined | null
+	inflow: Array<ModelTypes["ForecastValue"]>
 };
 	["NodeDiffusion"]: {
 		fromNode: ModelTypes["Node"],
@@ -2619,11 +2625,7 @@ See also [`chrono::DateTime`][2] for details.
 	["SeriesValue"]:ModelTypes["Constant"] | ModelTypes["FloatList"];
 	["SettingsResult"]:ModelTypes["Settings"] | ModelTypes["ValidationErrors"];
 	/** Defines the start of the time line. */
-["TimeLineStart"]:ModelTypes["ClockChoice"] | ModelTypes["CustomStartTime"];
-	["schema"]: {
-	query?: ModelTypes["Query"] | undefined | null,
-	mutation?: ModelTypes["Mutation"] | undefined | null
-}
+["TimeLineStart"]:ModelTypes["ClockChoice"] | ModelTypes["CustomStartTime"]
     }
 
 export type GraphQLTypes = {
@@ -2702,7 +2704,7 @@ export type GraphQLTypes = {
 	isMarket: boolean,
 	isRes: boolean,
 	cost: Array<GraphQLTypes["ValueInput"]>,
-	inflow?: number | undefined | null
+	inflow: Array<GraphQLTypes["ForecastValueInput"]>
 };
 	["NewNodeDelay"]: {
 		fromNode: string,
@@ -3047,7 +3049,7 @@ See also [`chrono::DateTime`][2] for details.
 	isRes: boolean,
 	state?: GraphQLTypes["State"] | undefined | null,
 	cost: Array<GraphQLTypes["Value"]>,
-	inflow?: GraphQLTypes["Forecastable"] | undefined | null
+	inflow: Array<GraphQLTypes["ForecastValue"]>
 };
 	["NodeDiffusion"]: {
 	__typename: "NodeDiffusion",

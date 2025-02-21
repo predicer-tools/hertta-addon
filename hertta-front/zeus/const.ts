@@ -33,7 +33,8 @@ export const AllTypesProps: Record<string,any> = {
 		reserveActivationPrice:"ValueInput"
 	},
 	NewNode:{
-		cost:"ValueInput"
+		cost:"ValueInput",
+		inflow:"ForecastValueInput"
 	},
 	NewNodeDelay:{
 
@@ -429,7 +430,7 @@ export const ReturnTypes: Record<string,any> = {
 		isRes:"Boolean",
 		state:"State",
 		cost:"Value",
-		inflow:"Forecastable"
+		inflow:"ForecastValue"
 	},
 	NodeDiffusion:{
 		fromNode:"Node",

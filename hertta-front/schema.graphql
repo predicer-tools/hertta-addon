@@ -115,7 +115,7 @@ input NewNode {
   isMarket: Boolean!
   isRes: Boolean!
   cost: [ValueInput!]!
-  inflow: Float
+  inflow: [ForecastValueInput!]!
 }
 
 input NewNodeDelay {
@@ -325,7 +325,7 @@ type InputData {
 
 type InputDataSetup {
   containsReserves: Boolean!
-  containsOnline: Boolean!
+  containOnline: Boolean!
   containsStates: Boolean!
   containsPiecewiseEff: Boolean!
   containsRisk: Boolean!
@@ -474,7 +474,7 @@ type Node {
   isRes: Boolean!
   state: State
   cost: [Value!]!
-  inflow: Forecastable
+  inflow: [ForecastValue!]!
 }
 
 type NodeDiffusion {
