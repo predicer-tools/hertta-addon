@@ -9,8 +9,9 @@ const AddNodePage = () => {
   const [isRes, setIsRes] = useState(false);
   // For simplicity, we assume cost is entered as a single constant value.
   const [costConstant, setCostConstant] = useState(0);
+  // For the new inflow field, we assume a single constant value.
   const [inflow, setInflow] = useState<number | ''>('');
-  
+
   // Local state to display server response
   const [serverResponse, setServerResponse] = useState('');
 
@@ -18,7 +19,8 @@ const AddNodePage = () => {
     e.preventDefault();
 
     // Build the mutation input object.
-    // We wrap the cost as an array with one ValueInput object (only using constant).
+    // Wrap "cost" as an array with one ValueInput object.
+    // For "inflow", wrap the value (if provided) as an array of ForecastValueInput
     const mutation = {
       createNode: [
         {
@@ -27,11 +29,8 @@ const AddNodePage = () => {
             isCommodity,
             isMarket,
             isRes,
-            cost: [
-              { constant: costConstant }
-            ],
-            // Send inflow only if a value is provided.
-            ...(inflow !== '' ? { inflow: Number(inflow) } : {}),
+            cost: [{ constant: costConstant }],
+            ...(inflow !== '' ? { inflow: [{ constant: Number(inflow) }] } : {}),
           },
         },
         {
@@ -108,16 +107,15 @@ const AddNodePage = () => {
         </label>
         <br />
         <label>
-        Inflow (optional):
-        <input
+          Inflow (optional, constant):
+          <input
             type="number"
             value={inflow}
             onChange={(e) =>
-            setInflow(e.target.value === '' ? '' : Number(e.target.value))
+              setInflow(e.target.value === '' ? '' : Number(e.target.value))
             }
-        />
+          />
         </label>
-
         <br />
         <button type="submit">Add Node</button>
       </form>

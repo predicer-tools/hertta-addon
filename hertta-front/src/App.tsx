@@ -15,6 +15,8 @@ import AddNodeDiffusionPage from './AddNodeDiffusionPage';
 import AddMarketPage from './AddMarketPage';
 import AddRiskPage from './AddRiskPage';
 import AddScenarioPage from './AddScenarioPage';
+import AddGenConstraintPage from './AddGenConstraintPage';
+import OptimizationPage from './OptimizationPage';
 import './App.css';
 
 const Home = () => {
@@ -90,6 +92,12 @@ function App() {
           <li>
             <Link to="/add-scenario">Add Scenario</Link>
           </li>
+          <li>
+            <Link to="/add-genconstraint">Add GenConstraint</Link>
+          </li>
+          <li>
+            <Link to="/optimization">Start Optimization</Link>
+          </li>
         </ul>
       </nav>
       <Routes>
@@ -107,6 +115,8 @@ function App() {
         <Route path="/add-market" element={<AddMarketPage />} />
         <Route path="/add-risk" element={<AddRiskPage />} />
         <Route path="/add-scenario" element={<AddScenarioPage />} />
+        <Route path="/add-genconstraint" element={<AddGenConstraintPage />} />
+        <Route path="/optimization" element={<OptimizationPage />} />
       </Routes>
     </BrowserRouter>
   );
