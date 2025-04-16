@@ -5,7 +5,7 @@ import viteLogo from '/vite.svg';
 import UpdateInputDataSetupPage from './UpdateInputDataSetupPage'; // update input setup page
 import AddNodePage from './AddNodePage'; // add node page
 import ViewNodesPage from './ViewNodesPage'; // view nodes page
-import UpdateNodeStatePage from './UpdateNodeStatePage'; // new update node state page
+import SetNodeStatePage from './SetNodeStatePage'; // new update node state page
 import AddProcessPage from './AddProcessPage';
 import AddProcessGroupPage from './AddProcessGroupPage';
 import AddTopologyPage from './AddTopologyPage';
@@ -105,7 +105,7 @@ function App() {
         <Route path="/update-setup" element={<UpdateInputDataSetupPage />} />
         <Route path="/add-node" element={<AddNodePage />} />
         <Route path="/view-nodes" element={<ViewNodesPage />} />
-        <Route path="/update-node-state" element={<UpdateNodeStatePage />} />
+        <Route path="/update-node-state" element={<SetNodeStatePage />} />
         <Route path="/add-process" element={<AddProcessPage />} />
         <Route path="/add-process-group" element={<AddProcessGroupPage />} />
         <Route path="/add-topology" element={<AddTopologyPage />} />

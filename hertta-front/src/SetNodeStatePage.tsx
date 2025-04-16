@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Gql, ValueTypes } from '../zeus';
 
-const UpdateNodeStatePage = () => {
+const SetNodeStatePage = () => {
   // Local state for nodes list and selected node name
   const [nodes, setNodes] = useState<{ name: string }[]>([]);
   const [selectedNode, setSelectedNode] = useState('');
@@ -52,9 +52,9 @@ const UpdateNodeStatePage = () => {
     e.preventDefault();
 
     // Build the mutation input object.
-    // Note: We cast to unknown and then to the expected tuple type so that TypeScript accepts it.
+    // We ensure that all values are numbers (int/float) and not strings.
     const mutation = {
-      updateNodeState: [
+      setNodeState: [
         {
           state: {
             inMax,
@@ -77,7 +77,7 @@ const UpdateNodeStatePage = () => {
           },
         },
       ] as unknown as [
-        { state: ValueTypes['StateUpdate']; nodeName: string },
+        { state: ValueTypes['StateInput']; nodeName: string },
         ValueTypes['ValidationErrors']
       ],
     };
@@ -94,7 +94,7 @@ const UpdateNodeStatePage = () => {
 
   return (
     <div>
-      <h1>Update Node State</h1>
+      <h1>Set Node State</h1>
       <form onSubmit={handleSubmit}>
         <label>
           Select Node:
@@ -133,9 +133,7 @@ const UpdateNodeStatePage = () => {
           <input
             type="number"
             value={stateLossProportional}
-            onChange={(e) =>
-              setStateLossProportional(Number(e.target.value))
-            }
+            onChange={(e) => setStateLossProportional(Number(e.target.value))}
           />
         </label>
         <br />
@@ -202,7 +200,7 @@ const UpdateNodeStatePage = () => {
           />
         </label>
         <br />
-        <button type="submit">Update Node State</button>
+        <button type="submit">Set Node State</button>
       </form>
       {serverResponse && (
         <div style={{ marginTop: '1rem', whiteSpace: 'pre-wrap' }}>
@@ -214,4 +212,4 @@ const UpdateNodeStatePage = () => {
   );
 };
 
-export default UpdateNodeStatePage;
+export default SetNodeStatePage;
