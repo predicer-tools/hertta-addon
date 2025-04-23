@@ -1,39 +1,153 @@
-import React, { useState } from 'react';
-import { Gql, ValueTypes } from '../zeus';
+import React, { useState } from "react";
+import { Gql, ValueTypes, MarketType } from "../zeus";
 
-const AddMarketPage = () => {
-  // State variables for required fields of the NewMarket input.
-  const [name, setName] = useState('');
-  const [mType, setMType] = useState('ENERGY'); // ENERGY or RESERVE
-  const [node, setNode] = useState('');
-  const [processGroup, setProcessGroup] = useState('');
-  // Optional fields
-  const [direction, setDirection] = useState(''); // Options: UP, DOWN, UP_DOWN
-  const [realisation, setRealisation] = useState<number | ''>('');
-  const [reserveType, setReserveType] = useState('');
-  
-  // Boolean flags
+/**
+ * A reusable input that lets the user decide whether the underlying GraphQL
+ * value should be a constant, a numeric series, or derived from a forecast.
+ */
+const PriceInput: React.FC<{
+  label: string;
+  state: PriceFieldState;
+  onChange: (s: PriceFieldState) => void;
+}> = ({ label, state, onChange }) => {
+  return (
+    <div className="mb-6">
+      <label className="block text-sm font-medium mb-1">{label} type</label>
+
+      <select
+        className="border rounded-lg p-2 w-full mb-2"
+        value={state.inputType}
+        onChange={(e) =>
+          onChange({ ...state, inputType: e.target.value as PriceInputType })
+        }
+      >
+        <option value="CONSTANT">Constant</option>
+        <option value="SERIES">Series</option>
+        <option value="FORECAST">Forecast</option>
+      </select>
+
+      {state.inputType === "CONSTANT" && (
+        <input
+          type="number"
+          className="border rounded-lg p-2 w-full"
+          value={state.constant}
+          onChange={(e) =>
+            onChange({ ...state, constant: Number(e.target.value) })
+          }
+        />
+      )}
+
+      {state.inputType === "SERIES" && (
+        <textarea
+          className="border rounded-lg p-2 w-full"
+          placeholder="Comma‑separated numbers, e.g. 10,12,13.5"
+          value={state.series}
+          onChange={(e) => onChange({ ...state, series: e.target.value })}
+        />
+      )}
+
+      {state.inputType === "FORECAST" && (
+        <input
+          type="text"
+          className="border rounded-lg p-2 w-full"
+          placeholder="Forecast name"
+          value={state.forecast}
+          onChange={(e) =>
+            onChange({ ...state, forecast: e.target.value.trim() })
+          }
+        />
+      )}
+    </div>
+  );
+};
+
+// ────────────────────────────────────────────────────────────────────────────────
+// Types & helpers
+// ────────────────────────────────────────────────────────────────────────────────
+
+type PriceInputType = "CONSTANT" | "SERIES" | "FORECAST";
+
+interface PriceFieldState {
+  inputType: PriceInputType;
+  constant: number;
+  series: string; // Raw comma‑separated string from the textarea
+  forecast: string;
+}
+
+const EMPTY_PRICE_FIELD: PriceFieldState = {
+  inputType: "CONSTANT",
+  constant: 0,
+  series: "",
+  forecast: "",
+};
+
+/**
+ * Convert the UI state into the ForecastValueInput array expected by the API.
+ */
+const buildForecastValue = (
+  field: PriceFieldState
+): ValueTypes["ForecastValueInput"][] => {
+  switch (field.inputType) {
+    case "CONSTANT":
+      return [{ constant: field.constant }];
+
+    case "SERIES":
+      const numbers = field.series
+        .split(/[,\s]+/)
+        .map((s) => Number(s))
+        .filter((n) => !Number.isNaN(n));
+      return [{ series: numbers }];
+
+    case "FORECAST":
+      return [{ forecast: field.forecast }];
+
+    /* istanbul ignore next */
+    default:
+      return [];
+  }
+};
+
+// ────────────────────────────────────────────────────────────────────────────────
+// Main page component
+// ────────────────────────────────────────────────────────────────────────────────
+
+const AddMarketPage: React.FC = () => {
+  // Basic market metadata
+  const [name, setName] = useState("");
+  const [mType, setMType] = useState<MarketType>(MarketType.ENERGY);
+  const [node, setNode] = useState("");
+  const [processGroup, setProcessGroup] = useState("");
+
+  // Optional metadata
+  const [direction, setDirection] = useState<ValueTypes["MarketDirection"] | "">("");
+  const [realisation, setRealisation] = useState<string>("");
+  const [reserveType, setReserveType] = useState("");
+
+  // Flags & numeric constraints
   const [isBid, setIsBid] = useState(false);
   const [isLimited, setIsLimited] = useState(false);
-  
-  // Numeric fields
   const [minBid, setMinBid] = useState(0);
   const [maxBid, setMaxBid] = useState(0);
   const [fee, setFee] = useState(0);
 
-  // For simplicity, we assume one constant value per forecast field.
-  const [priceConstant, setPriceConstant] = useState(0);
-  const [upPriceConstant, setUpPriceConstant] = useState(0);
-  const [downPriceConstant, setDownPriceConstant] = useState(0);
-  const [reserveActivationPriceConstant, setReserveActivationPriceConstant] = useState(0);
+  // Price‑related fields – now with type selection
+  const [priceField, setPriceField] = useState<PriceFieldState>({ ...EMPTY_PRICE_FIELD });
+  const [upPriceField, setUpPriceField] = useState<PriceFieldState>({ ...EMPTY_PRICE_FIELD });
+  const [downPriceField, setDownPriceField] = useState<PriceFieldState>({ ...EMPTY_PRICE_FIELD });
 
-  // Local state to display server response
-  const [serverResponse, setServerResponse] = useState('');
+  // Reserve activation price still follows ValueInput, constant only for now
+  const [reserveActivationPrice, setReserveActivationPrice] = useState(0);
+
+  // Server response
+  const [serverResponse, setServerResponse] = useState<string | null>(null);
+
+  // ──────────────────────────────────────────────────────────────────────────────
+  // Handlers
+  // ──────────────────────────────────────────────────────────────────────────────
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Build the mutation input object for creating a new market.
     const mutation = {
       createMarket: [
         {
@@ -43,18 +157,20 @@ const AddMarketPage = () => {
             node,
             processGroup,
             direction: direction || null,
-            realisation: realisation === '' ? null : Number(realisation),
+            realisation:
+            realisation.trim() === ""
+              ? []
+              : Number(realisation),
             reserveType: reserveType || null,
             isBid,
             isLimited,
             minBid,
             maxBid,
             fee,
-            // Wrap forecast values in an array (using constant values)
-            price: [{ constant: priceConstant }],
-            upPrice: [{ constant: upPriceConstant }],
-            downPrice: [{ constant: downPriceConstant }],
-            reserveActivationPrice: [{ constant: reserveActivationPriceConstant }],
+            price: buildForecastValue(priceField),
+            upPrice: buildForecastValue(upPriceField),
+            downPrice: buildForecastValue(downPriceField),
+            reserveActivationPrice: [{ constant: reserveActivationPrice }],
           },
         },
         {
@@ -64,186 +180,210 @@ const AddMarketPage = () => {
           },
         },
       ] as [
-        { market: ValueTypes['NewMarket'] },
-        ValueTypes['ValidationErrors']
+        { market: ValueTypes["NewMarket"] },
+        ValueTypes["ValidationErrors"]
       ],
     };
 
     try {
-      const response = await Gql('mutation')(mutation);
-      console.log('Mutation response:', response);
+      const response = await Gql("mutation")(mutation);
       setServerResponse(JSON.stringify(response, null, 2));
     } catch (error) {
-      console.error('Mutation error:', error);
-      setServerResponse(`Error: ${error}`);
+      // eslint-disable-next-line no-console
+      console.error("Mutation error", error);
+      setServerResponse(String(error));
     }
   };
 
+  // ──────────────────────────────────────────────────────────────────────────────
+  // Render
+  // ──────────────────────────────────────────────────────────────────────────────
+
   return (
-    <div>
-      <h1>Add New Market</h1>
-      <form onSubmit={handleSubmit}>
-        <label>
-          Market Name:
+    <div className="p-6 max-w-4xl mx-auto">
+      <h1 className="text-2xl font-semibold mb-8">Add new market</h1>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Basic fields */}
+        <div>
+          <label className="block text-sm font-medium mb-1">Market name</label>
           <input
-            type="text"
+            className="border rounded-lg p-2 w-full"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
           />
-        </label>
-        <br />
-        <label>
-          Market Type:
-          <select value={mType} onChange={(e) => setMType(e.target.value)}>
-            <option value="ENERGY">ENERGY</option>
-            <option value="RESERVE">RESERVE</option>
-          </select>
-        </label>
-        <br />
-        <label>
-          Node:
-          <input
-            type="text"
-            value={node}
-            onChange={(e) => setNode(e.target.value)}
-            required
-          />
-        </label>
-        <br />
-        <label>
-          Process Group:
-          <input
-            type="text"
-            value={processGroup}
-            onChange={(e) => setProcessGroup(e.target.value)}
-            required
-          />
-        </label>
-        <br />
-        <label>
-          Direction (optional):
-          <select value={direction} onChange={(e) => setDirection(e.target.value)}>
-            <option value="">None</option>
-            <option value="UP">UP</option>
-            <option value="DOWN">DOWN</option>
-            <option value="UP_DOWN">UP_DOWN</option>
-          </select>
-        </label>
-        <br />
-        <label>
-          Realisation (optional):
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6">
+          <div>
+            <label className="block text-sm font-medium mb-1">Market type</label>
+            <select
+              className="border rounded-lg p-2 w-full"
+              value={mType}
+              onChange={(e) => setMType(e.target.value as MarketType)}
+            >
+              <option value={MarketType.ENERGY}>ENERGY</option>
+              <option value={MarketType.RESERVE}>RESERVE</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Node</label>
+            <input
+              className="border rounded-lg p-2 w-full"
+              value={node}
+              onChange={(e) => setNode(e.target.value)}
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Process group</label>
+            <input
+              className="border rounded-lg p-2 w-full"
+              value={processGroup}
+              onChange={(e) => setProcessGroup(e.target.value)}
+              required
+            />
+          </div>
+        </div>
+
+        {/* Optional meta */}
+        <div className="grid md:grid-cols-3 gap-6">
+          <div>
+            <label className="block text-sm font-medium mb-1">Direction (optional)</label>
+            <select
+              className="border rounded-lg p-2 w-full"
+              value={direction}
+              onChange={(e) =>
+                setDirection(
+                  (e.target.value as ValueTypes["MarketDirection"]) || ""
+                )
+              }
+            >
+              <option value="">— none —</option>
+              <option value="UP">UP</option>
+              <option value="DOWN">DOWN</option>
+              <option value="UP_DOWN">UP_DOWN</option>
+              <option value="RES_UP">RES_UP</option>
+              <option value="RES_DOWN">RES_DOWN</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Realisation (optional)</label>
+            <input
+              type="number"
+              className="border rounded-lg p-2 w-full"
+              value={realisation}
+              onChange={(e) => setRealisation(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Reserve type (optional)</label>
+            <input
+              className="border rounded-lg p-2 w-full"
+              value={reserveType}
+              onChange={(e) => setReserveType(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Flags & numeric constraints */}
+        <div className="grid md:grid-cols-3 gap-6 items-end">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={isBid}
+              onChange={(e) => setIsBid(e.target.checked)}
+            />
+            <span>Is bid</span>
+          </label>
+
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={isLimited}
+              onChange={(e) => setIsLimited(e.target.checked)}
+            />
+            <span>Is limited</span>
+          </label>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6">
+          <div>
+            <label className="block text-sm font-medium mb-1">Min bid</label>
+            <input
+              type="number"
+              className="border rounded-lg p-2 w-full"
+              value={minBid}
+              onChange={(e) => setMinBid(Number(e.target.value))}
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Max bid</label>
+            <input
+              type="number"
+              className="border rounded-lg p-2 w-full"
+              value={maxBid}
+              onChange={(e) => setMaxBid(Number(e.target.value))}
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Fee</label>
+            <input
+              type="number"
+              className="border rounded-lg p-2 w-full"
+              value={fee}
+              onChange={(e) => setFee(Number(e.target.value))}
+              required
+            />
+          </div>
+        </div>
+
+        {/* New flexible price inputs */}
+        <PriceInput label="Price" state={priceField} onChange={setPriceField} />
+        <PriceInput
+          label="Up‑price"
+          state={upPriceField}
+          onChange={setUpPriceField}
+        />
+        <PriceInput
+          label="Down‑price"
+          state={downPriceField}
+          onChange={setDownPriceField}
+        />
+
+        {/* Reserve activation price – still constant for simplicity */}
+        <div>
+          <label className="block text-sm font-medium mb-1">Reserve activation price (constant)</label>
           <input
             type="number"
-            value={realisation}
-            onChange={(e) => setRealisation(e.target.value === '' ? '' : Number(e.target.value))}
-          />
-        </label>
-        <br />
-        <label>
-          Reserve Type (optional):
-          <input
-            type="text"
-            value={reserveType}
-            onChange={(e) => setReserveType(e.target.value)}
-          />
-        </label>
-        <br />
-        <label>
-          Is Bid:
-          <input
-            type="checkbox"
-            checked={isBid}
-            onChange={(e) => setIsBid(e.target.checked)}
-          />
-        </label>
-        <br />
-        <label>
-          Is Limited:
-          <input
-            type="checkbox"
-            checked={isLimited}
-            onChange={(e) => setIsLimited(e.target.checked)}
-          />
-        </label>
-        <br />
-        <label>
-          Min Bid:
-          <input
-            type="number"
-            value={minBid}
-            onChange={(e) => setMinBid(Number(e.target.value))}
+            className="border rounded-lg p-2 w-full"
+            value={reserveActivationPrice}
+            onChange={(e) => setReserveActivationPrice(Number(e.target.value))}
             required
           />
-        </label>
-        <br />
-        <label>
-          Max Bid:
-          <input
-            type="number"
-            value={maxBid}
-            onChange={(e) => setMaxBid(Number(e.target.value))}
-            required
-          />
-        </label>
-        <br />
-        <label>
-          Fee:
-          <input
-            type="number"
-            value={fee}
-            onChange={(e) => setFee(Number(e.target.value))}
-            required
-          />
-        </label>
-        <br />
-        <label>
-          Price Constant:
-          <input
-            type="number"
-            value={priceConstant}
-            onChange={(e) => setPriceConstant(Number(e.target.value))}
-            required
-          />
-        </label>
-        <br />
-        <label>
-          Up Price Constant:
-          <input
-            type="number"
-            value={upPriceConstant}
-            onChange={(e) => setUpPriceConstant(Number(e.target.value))}
-            required
-          />
-        </label>
-        <br />
-        <label>
-          Down Price Constant:
-          <input
-            type="number"
-            value={downPriceConstant}
-            onChange={(e) => setDownPriceConstant(Number(e.target.value))}
-            required
-          />
-        </label>
-        <br />
-        <label>
-          Reserve Activation Price Constant:
-          <input
-            type="number"
-            value={reserveActivationPriceConstant}
-            onChange={(e) => setReserveActivationPriceConstant(Number(e.target.value))}
-            required
-          />
-        </label>
-        <br />
-        <button type="submit">Add Market</button>
+        </div>
+
+        <button
+          type="submit"
+          className="bg-blue-600 text-white rounded-lg px-6 py-2 shadow-md hover:bg-blue-700 transition"
+        >
+          Add market
+        </button>
       </form>
 
       {serverResponse && (
-        <div style={{ marginTop: '1rem', whiteSpace: 'pre-wrap' }}>
-          <h3>Server Response:</h3>
-          <pre>{serverResponse}</pre>
+        <div className="mt-10">
+          <h2 className="text-xl font-semibold mb-2">Server response</h2>
+          <pre className="bg-gray-100 p-4 rounded-xl overflow-auto text-sm max-h-96">
+            {serverResponse}
+          </pre>
         </div>
       )}
     </div>
