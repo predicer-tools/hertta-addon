@@ -1,0 +1,32 @@
+name: "Hertta Add-on"
+version: "0.1.0"
+slug: "hertta_addon"
+description: "Hertta home energy system optimizer - HASS add-on"
+arch:
+  - amd64
+  - aarch64
+
+startup: services
+boot: auto
+init: false          # we'll handle startup in run.sh
+
+ports:
+  "4001/tcp": 4001
+ports_description:
+  "4001/tcp": "Hertta Hass backend API"
+ingress: true
+ingress_port: 4001
+
+homeassistant_api: true
+
+map:
+  - type: share
+    read_only: false
+  - type: homeassistant_config
+    read_only: false
+
+options:
+  log_level: info
+
+schema:
+  log_level: "str"

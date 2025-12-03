@@ -6,3 +6,6 @@
 	path = hertta-frontend
 	url = https://github.com/predicer-tools/hertta-frontend.git
 	branch = graphql_ui
+[submodule "hass-backend"]
+	path = hass-backend
+	url = https://github.com/jeenou/hass-backend.git
