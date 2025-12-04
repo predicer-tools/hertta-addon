@@ -5,7 +5,12 @@ ARG BUILD_FROM=ghcr.io/home-assistant/aarch64-base:latest
 
 # ---------- 1) Build Rust binaries ----------
 FROM rust:alpine AS rust_builder
-RUN apk add --no-cache musl-dev openssl-dev pkgconfig
+RUN apk add --no-cache \
+    musl-dev \
+    openssl-dev \
+    openssl-libs-static \
+    pkgconfig
+
 
 WORKDIR /build
 
