@@ -1,3 +1,8 @@
+# ---------- 0) Global build arg used by Home Assistant ----------
+# HA Supervisor will override this from build.yaml, but this default
+# also makes local "docker build" work if you pass no args.
+ARG BUILD_FROM=ghcr.io/home-assistant/aarch64-base:latest
+
 # ---------- 1) Build Rust binaries ----------
 FROM rust:1.81-alpine AS rust_builder
 RUN apk add --no-cache musl-dev openssl-dev pkgconfig
@@ -7,11 +12,14 @@ WORKDIR /build
 # Copy the whole repo (including submodules)
 COPY . .
 
-# Build hass-backend and hertta from workspace
-RUN cargo build --release --bin hass-backend --bin hertta
+# Build hass-backend crate
+RUN cd hass-backend && cargo build --release
+
+# Build hertta crate
+RUN cd /build/hertta && cargo build --release
 
 
-# ---------- 2) Build React frontend (CRA) ----------
+# ---------- 2) Build React frontend (Create React App) ----------
 FROM node:22-alpine AS frontend_builder
 
 WORKDIR /frontend
@@ -20,14 +28,12 @@ COPY hertta-frontend/package*.json ./
 RUN npm ci
 
 COPY hertta-frontend/ .
-RUN npm run build
 # CRA puts output into /frontend/build
+RUN npm run build
 
 
 # ---------- 3) Final runtime image (Home Assistant base) ----------
-ARG BUILD_FROM=ghcr.io/home-assistant/aarch64-base:latest
-FROM ${BUILD_FROM}
-
+FROM $BUILD_FROM
 
 USER root
 
@@ -40,8 +46,9 @@ RUN apk add --no-cache \
 WORKDIR /usr/src/app
 
 # ---- Rust binaries ----
-COPY --from=rust_builder /build/target/release/hass-backend /usr/local/bin/hass-backend
-COPY --from=rust_builder /build/target/release/hertta /usr/local/bin/hertta
+# Binaries are built per-crate, so paths are under each crate's target/
+COPY --from=rust_builder /build/hass-backend/target/release/hass-backend /usr/local/bin/hass-backend
+COPY --from=rust_builder /build/hertta/target/release/hertta /usr/local/bin/hertta
 
 # ---- Python code & deps (optional) ----
 COPY hertta ./hertta
