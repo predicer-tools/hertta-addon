@@ -4,7 +4,7 @@
 ARG BUILD_FROM=ghcr.io/home-assistant/aarch64-base:latest
 
 # ---------- 1) Build Rust binaries ----------
-FROM rust:1.81-alpine AS rust_builder
+FROM rust:alpine AS rust_builder
 RUN apk add --no-cache musl-dev openssl-dev pkgconfig
 
 WORKDIR /build
@@ -20,7 +20,7 @@ RUN cd /build/hertta && cargo build --release
 
 
 # ---------- 2) Build React frontend (Create React App) ----------
-FROM node:22-alpine AS frontend_builder
+FROM node:alpine AS frontend_builder
 
 WORKDIR /frontend
 
