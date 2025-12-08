@@ -9,7 +9,8 @@ RUN apk add --no-cache \
     musl-dev \
     openssl-dev \
     openssl-libs-static \
-    pkgconfig
+    pkgconfig \
+    build-base
 
 
 WORKDIR /build
