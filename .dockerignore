@@ -1,0 +1,33 @@
+# Ignore Git history
+.git/
+.gitmodules
+
+# Ignore Rust build artifacts
+**/target/
+target/
+
+# Ignore Node build artifacts
+**/node_modules/
+node_modules/
+**/build/
+build/
+**/dist/
+dist/
+
+# Ignore Python cache
+**/__pycache__/
+__pycache__/
+
+# Ignore logs
+*.log
+
+# Ignore local editor files
+.vscode/
+.idea/
+
+# Ignore Docker junk if present
+Dockerfile.*
+docker-compose.yml
+
+# Ignore other large unused dirs if any
+mock-backend/
