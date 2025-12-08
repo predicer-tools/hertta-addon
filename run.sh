@@ -27,6 +27,20 @@ HASS_PID=$!
 
 PIDS=("${HERTTA_PID}" "${HASS_PID}")
 
+# ---- Start Frontend HTTP server (serving static build) ----
+FRONTEND_PORT=8099
+
+bashio::log.info "Starting Hertta frontend on 0.0.0.0:${FRONTEND_PORT}..."
+cd /usr/src/app/hertta-frontend-dist
+python3 -m http.server "${FRONTEND_PORT}" &
+FRONTEND_PID=$!
+
+# Return to app root
+cd /usr/src/app
+
+PIDS+=("${FRONTEND_PID}")
+
+
 # ---- Graceful shutdown ----
 term_handler() {
   bashio::log.info "Stopping Hertta add-on processes..."

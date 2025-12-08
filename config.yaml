@@ -1,5 +1,5 @@
 name: "Hertta Add-on"
-version: "0.9.1"
+version: "0.9.2"
 slug: "hertta_addon"
 description: "Hertta home energy system optimizer - HASS add-on"
 arch:
@@ -12,8 +12,10 @@ init: false          # we'll handle startup in run.sh
 
 ports:
   "4001/tcp": 4001
+  "8099/tcp": 8099
 ports_description:
   "4001/tcp": "Hertta Hass backend API"
+  "8099/tcp": "Hertta frontend"
 ingress: true
 ingress_port: 4001
 
