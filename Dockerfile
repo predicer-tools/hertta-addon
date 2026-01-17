@@ -1,7 +1,9 @@
 # --------------------------
 # 1) Build Rust binaries
 # --------------------------
-FROM rust:1.76-alpine AS rust_builder
+ARG BUILD_FROM=ghcr.io/home-assistant/aarch64-base:latest
+
+    FROM rust:1.76-alpine AS rust_builder
 
 RUN apk add --no-cache \
     build-base \
@@ -22,7 +24,7 @@ RUN cargo build --release -p hass-backend -p hertta
 # --------------------------
 # 2) Final Home Assistant image
 # --------------------------
-ARG BUILD_FROM
+
 FROM $BUILD_FROM
 
 USER root
