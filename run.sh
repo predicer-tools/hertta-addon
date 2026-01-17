@@ -4,35 +4,45 @@ set -euo pipefail
 LOG_LEVEL=$(bashio::config 'log_level')
 bashio::log.info "Starting Hertta add-on (log level: ${LOG_LEVEL})"
 
-# ---- Environment for both services ----
-
-# Let Rust do logging if you use env_logger/tracing-subscriber
 export RUST_LOG="${LOG_LEVEL}"
 
 # Home Assistant Core API base inside an add-on container
 export HASS_BASE_URL="http://supervisor/core/api"
 
-export HERTTA_GRAPHQL_URL="http://127.0.0.1:3030/graphql"
+# Supervisor injects this token when homeassistant_api: true
+export HASS_TOKEN="${SUPERVISOR_TOKEN}"
 
+# Internal URL between processes in the same container
+export HERTTA_GRAPHQL_URL="http://localhost:3030/graphql"
 
-# ---- Start Hertta GraphQL backend (warp on 127.0.0.1:3030) ----
-bashio::log.info "Starting Hertta GraphQL backend on 127.0.0.1:3030..."
+bashio::log.info "Starting Hertta GraphQL backend on 0.0.0.0:3030..."
 hertta &
 HERTTA_PID=$!
 
-# ---- Start Hass backend (axum on 0.0.0.0:4001) ----
 bashio::log.info "Starting Hass backend on 0.0.0.0:4001..."
 hass-backend &
 HASS_PID=$!
 
 PIDS=("${HERTTA_PID}" "${HASS_PID}")
 
-# ---- Graceful shutdown ----
 term_handler() {
   bashio::log.info "Stopping Hertta add-on processes..."
+
+  # Graceful stop
   for pid in "${PIDS[@]}"; do
     if kill -0 "${pid}" 2>/dev/null; then
-      kill "${pid}" 2>/dev/null || true
+      kill -TERM "${pid}" 2>/dev/null || true
+    fi
+  done
+
+  # Give them a moment to exit
+  sleep 3
+
+  # Hard kill if still running
+  for pid in "${PIDS[@]}"; do
+    if kill -0 "${pid}" 2>/dev/null; then
+      bashio::log.warning "Process ${pid} did not exit; killing..."
+      kill -KILL "${pid}" 2>/dev/null || true
     fi
   done
 }
