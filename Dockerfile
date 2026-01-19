@@ -20,6 +20,21 @@ COPY . .
 # Build only the binaries you need (workspace packages)
 RUN cargo build --release -p hass-backend -p hertta
 
+# ------------------------------------------------
+# 2) Build frontend (CRA)
+# ------------------------------------------------
+FROM node:20-alpine AS frontend_builder
+
+WORKDIR /frontend
+
+# Install deps first (better caching)
+COPY hertta-frontend/package*.json ./
+RUN npm ci
+
+# Copy frontend sources and build
+COPY hertta-frontend/ ./
+RUN npm run build
+# Output: /frontend/build
 
 # --------------------------
 # 2) Final Home Assistant image
@@ -48,8 +63,8 @@ RUN if [ -f ./hertta/requirements.txt ]; then \
       pip3 install --no-cache-dir -r ./hertta/requirements.txt; \
     fi
 
-# CRA build output (you build manually with npm run build)
-COPY hertta-frontend/build/ /web/
+# Frontend build → /web
+COPY --from=frontend_builder /frontend/build/ /web/
 
 COPY run.sh /run.sh
 RUN chmod a+x /run.sh
