@@ -1,5 +1,5 @@
 name: "Hertta Add-on"
-version: "0.9.7"
+version: "0.9.8"
 slug: "hertta_addon"
 description: "Hertta home energy system optimizer - HASS add-on"
 
